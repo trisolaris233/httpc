@@ -1,7 +1,10 @@
 #include <set>
 #include "header.hpp"
+#include "response.hpp"
 #include <vector>
 #include <string>
+#include <iostream>
+#include <sstream>
 #include <string_view>
 
 
@@ -13,7 +16,7 @@ struct Request {
     std::string uri;
     int http_version_major;
     int http_version_minor;
-    std::vector<Headers> headers;
+    std::vector<Header> headers;
     std::string message_body;
 };
 
@@ -22,7 +25,7 @@ class RequestHandler {
 public:
     void Respond(const Request& request, Response& response);
 
-    bool request_handler::url_decode(const std::string& in, std::string& out) {
+    static bool url_decode(const std::string& in, std::string& out) {
         out.clear();
         out.reserve(in.size());
         for (std::size_t i = 0; i < in.size(); ++i) {
