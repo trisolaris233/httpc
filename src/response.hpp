@@ -1,24 +1,31 @@
 #pragma once
 
 #include <vector>
-#include "header.hpp"
+#include <string>
+#include "utility.hpp"
 
 namespace httpc {
 
-enum HTTPStatusCodeEnum {
+    struct Response {
+        int http_major_version{0};
+        int http_minor_version{0};
+        int status_code{0};
+        std::string reason_phrase;
+        std::vector<Header> headers;
+        std::string message_body;
 
-};
-
-struct Response {
-    int http_version_major;
-    int http_version_minor;
-    HTTPStatusCodeEnum status_code;
-    std::string reason_phrase;
-    std::vector<Header> headers;
-
-    Response& operator << (const Header& header);
-    Response& operator << (Header&& header);
-};
+        // std::vector<boost::asio::const_buffer> ToBuffers() {
+        //     std::vector<boost::asio::const_buffer> buffers;
+        //     buffers.push_back(
+        //         boost::asio::buffer(std::string("HTTP/1.0 200 OK\r\nContent-Type: text/html\r\n"))
+        //     );
+        //     // buffers.push_back(boost::asio::buffer(std::string("Content-Type: text/html;\r\n")));
+            
+        //     // buffers.push_back(boost::asio::buffer("\r\n"));
+        //     // buffers.push_back(boost::asio::buffer(message_body));
+        //     return buffers;
+        // }
+    };
 
 
 }

@@ -148,4 +148,4 @@ namespace httpc {
 
 		return 0;
 	}
-}
+} // httpc

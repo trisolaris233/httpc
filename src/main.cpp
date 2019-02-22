@@ -15,6 +15,9 @@
 #include <boost/asio.hpp>
 #include <boost/lexical_cast.hpp>
 
+char global[] = "HTTP/1.1 200 OK\r\nContent-Type: text/html;\r\n\r\n<html><body><h1>Hello, world</h1></body></html>";
+
+class ConnectionManager;
 
 enum HttpMethodEnum {
     GET,
@@ -464,11 +467,7 @@ public:
     //     { }
 
     void Respond(Request& request, Response& response) {
-        response.http_major_version = 1;
-        response.http_major_version = 1;
-        response.message_body = "<html><body><h1>Fuck You!</h1></body></html>";
-        response.reason_phrase = "OK";
-        response.status_code = 200;
+        
     }
 
 
@@ -476,8 +475,6 @@ private:
     Request request_;
 
 };
-
-class ConnectionManager;
 
 class Connection 
     : public std::enable_shared_from_this<Connection> {
@@ -505,7 +502,6 @@ private:
     Request                         request_;
     Response                        response_;
     RequestHandler                  handler_;
-    std::string                     send_buffer_;
 
     void DoRead() {
         auto self(shared_from_this());
@@ -515,25 +511,32 @@ private:
                 if(!ec) {
                     std::cout << "bytes_transferred = " << bytes_transferred << std::endl;
                     std::cout << buffer_.data() << std::endl;
-                    // begin
-                    auto res = 
-                        parser_.Parse(request_, buffer_.data(),
-                             buffer_.data() + bytes_transferred);
                     
-                    // if the parsement is complete, then call the request handler to 
-                    // make a response.
-                    if(std::get<0>(res) == RequestParser::kGood) {
-                        std::cout << "good parsement" << std::endl;
-                        //handler_.Respond(request_, response_);
-                        send_buffer_ = "fsdfjdshfsdjf";
-                        DoWrite(); // in this function call the user's function.
-                        // after
-                    } else if (std::get<0>(res) == RequestParser::kIndeterminate) {
-                        std::cout << "kIndeterminate" << std::endl;
+                    // DoWrite();
+                    // do the parse
+                    auto parse_res = this->parser_.Parse(
+                        this->request_, this->buffer_.data(),
+                        this->buffer_.data() + bytes_transferred
+                    );
+                    // get the enum value of parse result.
+                    auto res_enum = std::get<0>(parse_res);
+                    
+                    // if a request if parsed completely
+                    if (res_enum == RequestParser::kGood) {
+                        // call the handler to create the response according to 
+                        // the request given
+                        this->handler_.Respond(this->request_, this->response_);
+                        // here we get the reponse & request
+                        // find the router and call the user's function.
+                        // if not found, search the Document Root like 
+                        // what http server usually does.
+
+                        
+                        DoWrite();
+                    } else if (res_enum == RequestParser::kIndeterminate) {
                         DoRead();
-                    } else {
-                        std::cout << "bad request" << std::endl;
-                        // bad request
+                    } else {   // make a bad request.
+
                     }
                 } else {
                     std::cerr << ec.message() << std::endl;
@@ -543,23 +546,22 @@ private:
     }
 
     void DoWrite() {
-        std::cout << "start writing" << std::endl;
         auto self(shared_from_this());
         boost::asio::async_write(
             socket_,
-            boost::asio::buffer(send_buffer_, send_buffer_.length()),
-            boost::asio::transfer_at_least(send_buffer_.length()),
+            boost::asio::buffer(global, sizeof(global)),
+            boost::asio::transfer_at_least(sizeof(global)),
             [this, self] (boost::system::error_code ec, std::size_t bytes_transferred) {
                 if(!ec) {
-                    std::cout << ec.message() << std::endl;
-                    std::cout << "write " << bytes_transferred << " bytes" << std::endl;
+                    // ~~graceful~~ connection closure
                     boost::system::error_code ignored_ec;
-                    socket_.shutdown(boost::asio::ip::tcp::socket::shutdown_both,
-                        ignored_ec);
-                } else {
-                    std::cout << "err: " << ec.message() << std::endl;
+                    socket_.shutdown(
+                        boost::asio::ip::tcp::socket::shutdown_both,
+                        ignored_ec
+                    );
                 }
-            });
+            }
+        );
     }
 };
 
@@ -579,6 +581,11 @@ public:
         for(auto conn : connections_) {
             conn->Close();
         }
+    }
+
+    void CloseConnection(std::shared_ptr<Connection> ptr_conn) {
+        // close connection
+        connections_.erase(ptr_conn);
     }
 
     template <typename Function, typename... Args>
@@ -664,21 +671,21 @@ public:
 
 
     void Start() {
-        thread_.reset(new std::thread(
-            [this] {
-                io_context_.run();
-            }
-        ));
-        // should be tested before use.
-        // but that means I should make a exception class
-        // I am lazy...
-        thread_->detach();
+        // thread_.reset(new std::thread(
+        //     [this] {
+        //         io_context_.run();
+        //     }
+        // ));
+        // // should be tested before use.
+        // // but that means I should make a exception class
+        // // I am lazy...
+        // thread_->detach();
 
         // use std::async instead
-        // auto s = std::async(std::launch::async,
-        //             [this]{
-        //                io_context_.run(); 
-        //             });
+        std::async(std::launch::async,
+                    [this]{
+                       io_context_.run(); 
+                    });
     }
 
 
@@ -701,8 +708,8 @@ private:
     boost::asio::ip::tcp::acceptor acceptor_;
     std::string document_root_;
     ConnectionManager manager_;
-    std::shared_ptr<std::thread> 
-                        thread_;
+    // std::shared_ptr<std::thread> 
+    //                     thread_;
 
 
     void Accept() {

@@ -4,15 +4,5 @@
 
 namespace httpc {
 
-class Server {
-public:
-    
 
-private:
-    ConnectionManager manager_;
-    std::string doc_root_;
-
-};
-
-
-}
+} // httpc
