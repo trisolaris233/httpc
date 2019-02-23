@@ -2,21 +2,22 @@
 
 #include <map>
 #include <regex>
+#include <vector>
 #include <string>
 #include <utility>
 #include <functional>
 #include "utility.hpp"
 #include "request.hpp"
 #include "response.hpp"
-#include "connection_manager.hpp"
 
 namespace httpc {
-
+    
+    class ConnectionManager;
     class HttpRouter {
     public:
-        typedef std::function<void(Request&, Response&)> CallBackFunctionType;
+        using CallBackFunctionType = std::function<void(Request&, Response&)>;
         
-        explicit HttpRouter(ConnectionManager& manager) :
+        explicit HttpRouter(ConnectionManager& manager) noexcept :
             manager_(manager) { }
 
         // the rules of registering general routers:
@@ -33,6 +34,8 @@ namespace httpc {
         // takes a parameter of std::regex and use the regular expression to do your
         // routers.
         // 6. /prefix/* matches /prefix/fdfd but doesnt match /prefix
+        // 7. the router will try to match in the direct map and wildcard map first.
+        // then the regex map. 
         template <HttpMethodEnum... Methods, typename Function, typename... Aspects>
         void RegisterRouter(
             const std::string&  router_directory,
@@ -74,7 +77,7 @@ namespace httpc {
                 for (auto& method : methods) {
                     RegisterRouterImpl_(
                         method,
-                        router_directory,
+                        std::move(router_directory),
                         std::forward<Function>(callback),
                         std::move(aspects)...
                     );
@@ -82,7 +85,7 @@ namespace httpc {
             } else {
                 RegisterRouterImpl_(
                     GetMethodStr<HttpMethodEnum::GET>(),
-                    router_directory,
+                    std::move(router_directory),
                     std::forward<Function>(callback),
                     std::move(aspects)...
                 );

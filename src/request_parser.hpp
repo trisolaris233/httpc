@@ -1,7 +1,8 @@
 #pragma once
 
 #include <tuple>
-#include <string_view>
+#include <string>
+#include <iostream>
 #include "request.hpp"
 
 namespace httpc {
@@ -96,7 +97,7 @@ namespace httpc {
 
                 case kHTTPMethod:
                     if (chr == ' ') {
-                        parse_enum_ = kH;
+                        parse_enum_ = kURI;
                         return kIndeterminate;
                     } else if (!is_char(chr) || is_ctl(chr) || is_tspecial(chr)) {
                         return kBad;

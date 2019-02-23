@@ -1,21 +1,19 @@
 #pragma once
 
+#include "utility.hpp"
+#include "request.hpp"
+#include "response.hpp"
+
 namespace httpc {
 
     class RequestHandler {
     public:
 
-        // RequestHandler(const Request& request) :
-        //     request_(request)
-        //     { }
-
-        void Respond(Request& request, Response& response) {
-            
-        }
+        void Respond(Request& request, Response& response);
 
 
     private:
-        Request request_;
+        //Request             request_;
 
     };
 
