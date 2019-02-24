@@ -113,7 +113,7 @@ namespace httpc {
                     } else if (is_ctl(chr)) {
                         return kBad;
                     } else {
-                        request_.uri.push_back(chr);
+                        request_.uri.Append(chr);
                         return kIndeterminate;
                     }
 
@@ -241,7 +241,7 @@ namespace httpc {
                     if (chr == '\r') {
                         parse_enum_ = kExceptingNormalNewLine;
                         return kIndeterminate;
-                    } else if (!is_char(chr) || is_ctl(chr) || is_tspecial(chr)) {
+                    } else if (is_ctl(chr)) {
                         return kBad;
                     } else {
                         request_.headers.back().value.push_back(chr);

@@ -43,10 +43,12 @@ namespace httpc {
                             this->request_,
                             this->response_
                         );
-                        std::cout << this->request_ << std::endl;
+                        std::cout << "request: " << std::endl << this->request_ << std::endl;
+                        std::cout << "uri: " << this->request_.uri.GetUri() << std::endl;
+                        this->request_.uri.Update();
                         this->manager_.Route(
                             this->request_.method,
-                            this->request_.uri, 
+                            this->request_.uri.GetUri(), 
                             this->request_, 
                             this->response_
                         );

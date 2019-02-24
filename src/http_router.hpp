@@ -29,7 +29,7 @@ namespace httpc {
         // such as /prefix/*. that matches /prefix/a and /prefix/aaa but doesnt 
         // match /prefix/a/b. To match it you need to pass /prefix/a/* or /prefix/*/*
         // but like /prefix* that you want to matches /prefixa or /prefixb is not work.
-        // or you should use regex version.
+        // you should use regex version.
         // 5. if you want to lead a stronger router, please use RegisterRouter which
         // takes a parameter of std::regex and use the regular expression to do your
         // routers.

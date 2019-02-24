@@ -3,6 +3,7 @@
 #include <string>
 #include <vector>
 #include <iostream>
+#include "uri.hpp"
 #include "utility.hpp"
 
 namespace httpc {
@@ -10,10 +11,13 @@ namespace httpc {
     // the structure of http request
     struct Request {
         std::string method;
-        std::string uri;
-        int http_major_version{0};
-        int http_minor_version{0};
-        std::vector<Header> headers;
+        // Uri         uri2;
+        Uri         uri;
+        // std::string uri;
+        int         http_major_version{0};
+        int         http_minor_version{0};
+        std::vector<Header> 
+                    headers;
         std::string message_body;
 
         std::vector<Header>::iterator HeaderBegin() {

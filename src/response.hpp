@@ -17,6 +17,11 @@ namespace httpc {
         std::vector<Header> headers;
         std::string message_body;
 
+        inline bool Empty() const {
+            return static_cast<int>(this->status_code) == 0 && this->headers.empty() &&
+                 this->reason_phrase.empty() && this->message_body.empty();
+        }
+
         inline void SetDefault(HTTPStatusCodeEnum status) {
             this->http_major_version = this->http_minor_version = 1;
             this->status_code = status;
@@ -66,17 +71,6 @@ namespace httpc {
             ss << GetCRLF() << this->message_body;
             str.assign(std::move(ss.str()));
         }
-
-        // auto ToBuffer() -> decltype(boost::asio::buffer(std::string())) {
-        //     std::stringstream ss;
-        //     ss << "HTTP/" << this->http_major_version << "." << this->http_minor_version
-        //        << " " << static_cast<int>(this->status_code) << " " << GetHTTPReasonPhrase(this->status_code) << GetCRLF();
-        //     for (const auto& header : this->headers) {
-        //         ss << header.field << ": " << header.value << GetCRLF();
-        //     }
-        //     ss << GetCRLF() << this->message_body;
-        //     return boost::asio::buffer(ss.str());
-        // }
 
         friend std::ostream& operator<< (std::ostream& os, const Response& response) {
             os << "HTTP/" << response.http_major_version << "." << response.http_minor_version
