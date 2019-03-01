@@ -89,29 +89,36 @@ namespace httpc {
     }
 
     template <HttpMethodEnum Method>
-    std::string GetMethodStr() {
+    std::string GetMethodStr() noexcept {
         return std::string();
     }
 
     template <>
-    std::string GetMethodStr<HttpMethodEnum::GET>() {
+    std::string GetMethodStr<HttpMethodEnum::GET>() noexcept {
         return std::string("GET");
     }
 
     template <>
-    std::string GetMethodStr<HttpMethodEnum::POST>() {
+    std::string GetMethodStr<HttpMethodEnum::POST>() noexcept {
         return std::string("POST");
     }
 
-    bool is_char(int c) {
+    template <HttpMethodEnum... Methods>
+    std::vector<std::string> GetMethodsStr() noexcept {
+        std::vector<std::string> res;
+        (res.emplace_back((GetMethodStr<Methods>())), ...);
+        return res;
+    }
+
+    bool is_char(int c) noexcept {
         return c >= 0 && c <= 127;
     }
 
-    bool is_ctl(int c) {
+    bool is_ctl(int c) noexcept {
         return (c >= 0 && c <= 31) || (c == 127);
     }
 
-    bool is_tspecial(int c) {
+    bool is_tspecial(int c) noexcept {
         switch (c)
         {
         case '(': case ')': case '<': case '>': case '@':
@@ -124,69 +131,62 @@ namespace httpc {
         }
     }
 
-    template <HttpMethodEnum... Methods>
-    std::vector<std::string> GetMethodsStr() {
-        std::vector<std::string> res;
-        (res.push_back((GetMethodStr<Methods>())), ...);
-        return res;
-    }
-
-    const std::vector<int>& GetHttpVersionSupported() {
+    const std::vector<int>& GetHttpVersionSupported() noexcept {
         static std::vector<int> HttpVersionSupported = {
-            11
+            10, 11
         };
         return HttpVersionSupported;
     }
 
-    const std::vector<std::string>& GetHttpMethodSupported() {
+    const std::vector<std::string>& GetHttpMethodSupported() noexcept {
         static std::vector<std::string> HttpMethodSupported = {
             "GET", "POST"
         };
         return HttpMethodSupported;
     }
 
-    const std::vector<HTTPStatusCodeEnum>& GetAllHttpStatus() {
+    const std::vector<HTTPStatusCodeEnum>& GetAllHttpStatus() noexcept {
         static std::vector<HTTPStatusCodeEnum> AllHTTPStatus = {
-            kContinue,
-            kSwitchingProtocols,
-            kOk,
-            kCreated,
-            kAccepted,
-            kNonAuthoritativeInfomation,
-            kNoContent,
-            kResetContent,
-            kParticalContent,
-            kMultipleChoices,
-            kMovedPermanently,
-            kFound,
-            kSeeOther,
-            kNotModified,
-            kUseProxy,
-            kTemporaryRedirect,
-            kBadRequest,
-            kUnauthorized,
-            kPaymentRequired,
-            kForbidden,
-            kNotFound,
-            kMethodNotAllowed,
-            kNotAcceptable,
-            kProxyAuthenticationRequired,
-            kRequestTimeout,
-            kConflict,
-            kGone,
-            kLengthRequired,
-            kPreconditionFailed,
-            kRequestEntityTooLarge,
-            kRequestURITooLarge,
-            kUnsupportedMediaType,
-            kRequestedRangeNotSatisfiable,
-            kExpectationFailed,
-            kInternalServerError,
-            kNotImplemented,
-            kBadGateway,
-            kServiceUnavailable,
-            kGatewayTimeout,
-            kHTTPVersionNotSupported
+            HTTPStatusCodeEnum::kContinue,
+            HTTPStatusCodeEnum::kSwitchingProtocols,
+            HTTPStatusCodeEnum::kOk,
+            HTTPStatusCodeEnum::kCreated,
+            HTTPStatusCodeEnum::kAccepted,
+            HTTPStatusCodeEnum::kNonAuthoritativeInfomation,
+            HTTPStatusCodeEnum::kNoContent,
+            HTTPStatusCodeEnum::kResetContent,
+            HTTPStatusCodeEnum::kParticalContent,
+            HTTPStatusCodeEnum::kMultipleChoices,
+            HTTPStatusCodeEnum::kMovedPermanently,
+            HTTPStatusCodeEnum::kFound,
+            HTTPStatusCodeEnum::kSeeOther,
+            HTTPStatusCodeEnum::kNotModified,
+            HTTPStatusCodeEnum::kUseProxy,
+            HTTPStatusCodeEnum::kTemporaryRedirect,
+            HTTPStatusCodeEnum::kBadRequest,
+            HTTPStatusCodeEnum::kUnauthorized,
+            HTTPStatusCodeEnum::kPaymentRequired,
+            HTTPStatusCodeEnum::kForbidden,
+            HTTPStatusCodeEnum::kNotFound,
+            HTTPStatusCodeEnum::kMethodNotAllowed,
+            HTTPStatusCodeEnum::kNotAcceptable,
+            HTTPStatusCodeEnum::kProxyAuthenticationRequired,
+            HTTPStatusCodeEnum::kRequestTimeout,
+            HTTPStatusCodeEnum::kConflict,
+            HTTPStatusCodeEnum::kGone,
+            HTTPStatusCodeEnum::kLengthRequired,
+            HTTPStatusCodeEnum::kPreconditionFailed,
+            HTTPStatusCodeEnum::kRequestEntityTooLarge,
+            HTTPStatusCodeEnum::kRequestURITooLarge,
+            HTTPStatusCodeEnum::kUnsupportedMediaType,
+            HTTPStatusCodeEnum::kRequestedRangeNotSatisfiable,
+            HTTPStatusCodeEnum::kExpectationFailed,
+            HTTPStatusCodeEnum::kInternalServerError,
+            HTTPStatusCodeEnum::kNotImplemented,
+            HTTPStatusCodeEnum::kBadGateway,
+            HTTPStatusCodeEnum::kServiceUnavailable,
+            HTTPStatusCodeEnum::kGatewayTimeout,
+            HTTPStatusCodeEnum::kHTTPVersionNotSupported
         };
 
         return AllHTTPStatus;

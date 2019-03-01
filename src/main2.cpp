@@ -167,12 +167,12 @@ int main(int argc, char* argv[]) {
     httpc::Server server(
         "127.0.0.1", 
         std::string(argv[1]), 
-        "/home/sakakiyukiho/www"
+        "/home/sakakiyukiho/dev/cpp/httpc/static"
     );
 
     server.AddRouter("/", [](Request&, Response& res){
-        std::cout << "enter bussiness" << std::endl;
-        res.RenderString("hello, world");
+        //std::cout << "enter bussiness" << std::endl;
+        res.RenderString("hello world");
     });
     server.AddRouter("/index/?", [](Request&, Response& res) {
         std::cout << "enter /index?" << std::endl;
@@ -184,6 +184,12 @@ int main(int argc, char* argv[]) {
             std::cout << "enter regex" << std::endl;
             res.RenderString("If you see this page that means you've entered /*/*[/] route");
         });
+    server.AddRouter("/index.html", [&server](Request&, Response& res) {
+        res.RenderFromStaticFile(server.GetDocumentRoot() + "/index.html");
+    });
+    server.AddRouter("/index2.html", [&server](Request&, Response& res) {
+        res.AsyncRenderFromStaticFile(server.GetDocumentRoot() + "/index.html");
+    });
 
     server.Start();
 

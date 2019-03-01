@@ -52,7 +52,7 @@ namespace httpc {
                         method,
                         router_directory, 
                         std::forward<Function>(callback), 
-                        std::move(aspects)...
+                        std::forward<Aspects>(aspects)...
                     );
                 }
             } else {    // has no http method.
@@ -60,7 +60,7 @@ namespace httpc {
                     GetMethodStr<HttpMethodEnum::GET>(),
                     router_directory,
                     std::forward<Function>(callback),
-                    std::move(aspects)...
+                    std::forward<Aspects>(aspects)...
                 );
             }
         }
@@ -77,17 +77,17 @@ namespace httpc {
                 for (auto& method : methods) {
                     RegisterRouterImpl_(
                         method,
-                        std::move(router_directory),
+                        std::forward<std::regex>(router_directory),
                         std::forward<Function>(callback),
-                        std::move(aspects)...
+                        std::forward<Aspects>(aspects)...
                     );
                 }
             } else {
                 RegisterRouterImpl_(
                     GetMethodStr<HttpMethodEnum::GET>(),
-                    std::move(router_directory),
+                    std::forward<std::regex>(router_directory),
                     std::forward<Function>(callback),
-                    std::move(aspects)...
+                    std::forward<Aspects>(aspects)...
                 );
             }
         }
@@ -100,7 +100,7 @@ namespace httpc {
             Aspects...          aspects
         ) {
             // get all the aspects objects into a tuple
-            std::tuple<Aspects...> aspects_tuple(std::move(aspects)...);
+            std::tuple<Aspects...> aspects_tuple(std::forward<Aspects>(aspects)...);
             // go through for every aspect and call the before() function
             std::apply([&request, &response](auto&&... aspect) {
                 (aspect.before(request, response), ...);
@@ -138,7 +138,7 @@ namespace httpc {
             }
 
             // try fezzy match
-            std::size_t num_of_slash = 1;
+            std::size_t num_of_slash{1};
             for (
                 auto pos_of_slash = route_directory.rfind('/');
                 pos_of_slash != std::string::npos;
@@ -185,12 +185,12 @@ namespace httpc {
                                                     regex_router_map_;
 
         
-        template <typename Function, typename... Aspect>
+        template <typename Function, typename... Aspects>
         void RegisterRouterImpl_(
             const std::string&  http_method,
             const std::string&  router_directory,
             Function&&          callback,
-            Aspect&&...         aspects
+            Aspects&&...         aspects
         ) {
             if (router_directory.empty() || router_directory[0] != '/') {
                 return;
@@ -198,42 +198,42 @@ namespace httpc {
             // if find char of '*' in the router location
             if (router_directory.find('*') != std::string::npos) {
                 wildcard_router_map_[http_method + router_directory] = std::bind(
-                    &HttpRouter::Invoke<Function, Aspect...>,
+                    &HttpRouter::Invoke<Function, Aspects...>,
                     this,
                     std::placeholders::_1,
                     std::placeholders::_2,
                     std::forward<Function>(callback),
-                    std::move(aspects)...
+                    std::forward<Aspects>(aspects)...
                 );
             } else {
                 directly_router_map_[http_method + router_directory] = std::bind(
-                    &HttpRouter::Invoke<Function, Aspect...>,
+                    &HttpRouter::Invoke<Function, Aspects...>,
                     this,
                     std::placeholders::_1,
                     std::placeholders::_2,
                     std::forward<Function>(callback),
-                    std::move(aspects)...
+                    std::forward<Aspects>(aspects)...
                 );
             }
         }
 
-        template <typename Function, typename... Aspect>
+        template <typename Function, typename... Aspects>
         void RegisterRouterImpl_(
             const std::string&  http_method,
             std::regex&&        router_directory,
             Function&&          callback,
-            Aspect&&...         aspects
+            Aspects&&...        aspects
         ) {
             regex_router_map_[http_method].push_back(
                 std::make_pair(
-                    std::regex(std::move(router_directory)),
+                    std::regex(std::forward<std::regex>(router_directory)),
                     std::bind(
-                        &HttpRouter::Invoke<Function, Aspect...>,
+                        &HttpRouter::Invoke<Function, Aspects...>,
                         this,
                         std::placeholders::_1,
                         std::placeholders::_2,
                         std::forward<Function>(callback),
-                        std::move(aspects)...
+                        std::forward<Aspects>(aspects)...
                     )
                 )
             );

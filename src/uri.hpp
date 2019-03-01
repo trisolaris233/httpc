@@ -18,27 +18,27 @@ namespace httpc {
             ParseUri_(std::forward<std::string>(str));
         }
 
-        inline const std::string& GetUri() const {
+        inline const std::string& GetUri() const noexcept {
             return this->uri_;
         }
 
-        inline std::string const& GetOriginal() const {
+        inline std::string const& GetOriginal() const noexcept {
             return this->original_;
         }
 
-        inline auto GetQueryBegin() {
+        inline auto GetQueryBegin() noexcept {
             return query_.begin();
         }
 
-        inline auto GetQueryEnd() {
+        inline auto GetQueryEnd() noexcept {
             return query_.end();
         }
 
-        inline auto GetQueryCBegin() const {
+        inline auto GetQueryCBegin() const noexcept {
             return query_.cbegin();
         }
 
-        inline auto GetQueryCEnd() const {
+        inline auto GetQueryCEnd() const noexcept {
             return query_.cend();
         }
 
@@ -89,21 +89,15 @@ namespace httpc {
         std::map<std::string, std::string>  query_;
 
         template <typename T>
-        typename std::enable_if<
-            std::is_same<typename std::remove_cv<
-                typename std::remove_reference<T>::type
-            >::type, std::string>::value,
+        typename std::enable_if_t<
+            std::is_same_v<std::remove_cv_t<std::remove_reference_t<T>>, std::string>,
             void
-        >::type
+        >
         ParseUri_(T&& str) {
-            using StrType = typename std::remove_cv<
-                typename std::remove_reference<T>::type
-            >::type; 
-                
             bool    query_flag          = false,
                     query_value_flag    = false;
 
-            std::string tmp(std::move(str));
+            std::string tmp(std::forward<std::remove_reference_t<decltype(str)>>(str));
             std::pair<std::string, std::string> tmp_pair;
             
             for (auto itr = tmp.begin(); itr != tmp.end(); ++itr) {

@@ -1,9 +1,14 @@
 #pragma once
 
+#include <map>
 #include <vector>
 #include <string>
+#include <utility>
 #include <sstream>
+#include <fstream>
+// #include <filesystem>   // for C++17 filesystem
 #include <boost/asio.hpp>
+#include <boost/lexical_cast.hpp>
 #include "utility.hpp"
 #include "request.hpp"
 
@@ -17,7 +22,11 @@ namespace httpc {
         std::vector<Header> headers;
         std::string message_body;
 
-        inline bool Empty() const {
+        inline bool IsAsyncWriting() const noexcept {
+            return this->async_state_flag_;
+        }
+
+        inline bool Empty() const noexcept {
             return static_cast<int>(this->status_code) == 0 && this->headers.empty() &&
                  this->reason_phrase.empty() && this->message_body.empty();
         }
@@ -38,6 +47,51 @@ namespace httpc {
         inline void RenderString(const std::string& str) {
             message_body.assign(str);
         }
+
+        template <typename T>
+        std::enable_if_t<
+            std::is_same_v<std::decay_t<T>, std::string> || 
+            std::is_same_v<std::decay_t<T>, char*>,
+            void
+        >
+        inline RenderFromStaticFile(T&& str) {
+            std::ifstream local_file(
+                std::forward<std::remove_reference_t<decltype(str)>>(str)
+            );
+            for (; local_file.is_open() && !local_file.eof(); ) {
+                auto chr {local_file.get()};
+                if (EOF == chr) break;
+                this->message_body.push_back(
+                    static_cast<typename decltype(this->message_body)::value_type>(chr)
+                );
+            }
+        }
+
+        template <typename T>
+        std::enable_if_t<
+            std::is_same_v<std::decay_t<T>, std::string> || 
+            std::is_same_v<std::decay_t<T>, char*>,
+            void
+        >
+        inline AsyncRenderFromStaticFile(T&& str) {
+            auto handler = std::async(std::launch::async, [&str, this]() {
+                // set the async writing state
+                this->async_state_flag = true;
+                std::ifstream local_file(
+                    std::forward<std::remove_reference_t<decltype(str)>>(str)
+                );
+                for (; local_file.is_open() && !local_file.eof(); ) {
+                    auto chr {local_file.get()};
+                    if (EOF == chr) break;
+                    this->message_body.push_back(
+                        static_cast<typename decltype(this->message_body)::value_type>(chr)
+                    );
+                }
+                this->async_state_flag = false;
+            });
+        }
+
+        // template <typename T, typename Func>
 
         std::vector<boost::asio::const_buffer> ToBuffers() {
             std::vector<boost::asio::const_buffer> buffers;
@@ -81,6 +135,26 @@ namespace httpc {
             os << response.message_body;
             return os;
         }
+
+        template <typename StringT, typename ValueT>
+        inline bool AddVariable(StringT&& str, ValueT&& value) {
+            return this->variable_table_.insert(
+                std::make_pair(
+                    std::forward<std::remove_reference_t<decltype(str)>>(str),
+                    std::forward<std::string>(
+                        boost::lexical_cast<std::string>(
+                            std::forward<std::remove_reference_t<decltype(valye)>>(value)
+                        )
+                    )
+                )
+            ).second;
+        }
+
+    private:
+        mutable bool    async_state_flag_{false};
+        std::map<std::string, std::string>
+                        variable_table_;
+
     };
 
 

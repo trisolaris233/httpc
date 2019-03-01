@@ -10,7 +10,7 @@
 
 namespace httpc {
 
-    class ConnectionManager : Noncopyable {
+    class ConnectionManager : public Noncopyable {
     public:
 
         ConnectionManager() noexcept :
@@ -30,8 +30,9 @@ namespace httpc {
         ) {
             router_.RegisterRouter<Methods...>(
                 route, 
-                std::forward<Function>(callback), 
-                std::move(aspects)...
+                std::forward<Function>(callback),
+                std::forward<Aspects>(aspects)...
+                // std::move(aspects)...
             );
         }
         template <HttpMethodEnum... Methods, typename Function, typename... Aspects>
@@ -41,9 +42,11 @@ namespace httpc {
             Aspects&&... aspects
         ) {
             router_.RegisterRouter<Methods...>(
-                std::move(route), 
+                // std::move(route), 
+                std::forward<std::regex>(route),
                 std::forward<Function>(callback), 
-                std::move(aspects)...
+                std::forward<Aspects>(aspects)...
+                // std::move(aspects)...
             );
         }
         void Route(

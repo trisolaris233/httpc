@@ -47,16 +47,16 @@ namespace httpc {
         }
 
 
-        template <HttpMethodEnum... Method, typename Function, typename... Args>
+        template <HttpMethodEnum... Method, typename Function, typename... Aspects>
         void AddRouter(
             const std::string& route, 
             Function&& callback,
-            Args&&... aspects
+            Aspects&&... aspects
         ) {
             manager_.RegisterRouter<Method...>(
                 route,
                 std::forward<Function>(callback),
-                std::move(aspects)...
+                std::forward<Aspects>(aspects)...
             );
             // manager_.RegisterRouter(
             //             route,
@@ -65,22 +65,26 @@ namespace httpc {
             //         );
         }
 
-        template <HttpMethodEnum... Method, typename Function, typename... Args>
+        template <HttpMethodEnum... Method, typename Function, typename... Aspects>
         void AddRouter(
             std::regex&& route, 
             Function&& callback,
-            Args&&... aspects
+            Aspects&&... aspects
         ) {
             manager_.RegisterRouter<Method...>(
-                std::move(route),
+                std::forward<std::regex>(route),
                 std::forward<Function>(callback),
-                std::move(aspects)...
+                std::forward<Aspects>(aspects)...
             );
             // manager_.RegisterRouter(
             //             route,
             //             std::forward<Function>(callback),
             //             std::move(aspects)...
             //         );
+        }
+
+        inline std::string GetDocumentRoot() const noexcept {
+            return document_root_;
         }
         
         
@@ -99,7 +103,7 @@ namespace httpc {
                 [this](boost::system::error_code ec, boost::asio::ip::tcp::socket socket) {
                     // pass it to connection_manager
                     if(!ec) {
-                        std::cout << "add Connection" << std::endl;
+                        // std::cout << "add Connection" << std::endl;
                         manager_.AddConnection(std::move(socket));
                     } else {
                         std::cout << "err: " << ec.message() << std::endl;

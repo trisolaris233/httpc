@@ -38,7 +38,7 @@ namespace httpc {
             kIndeterminate
         };
 
-        RequestParser() {}
+        RequestParser() = default;
 
         explicit RequestParser(const std::string_view& request) :
             request_str_(request),

@@ -11,12 +11,12 @@ namespace httpc {
         std::string value;
     };
 
-    enum HttpMethodEnum {
+    enum class HttpMethodEnum {
         GET,
         POST
     };
 
-    enum HTTPStatusCodeEnum {
+    enum class HTTPStatusCodeEnum {
         kContinue = 100,
         kSwitchingProtocols = 101,
         kOk = 200,
@@ -68,24 +68,24 @@ namespace httpc {
     }
 
     template <HttpMethodEnum Method>
-    std::string GetMethodStr();
+    std::string GetMethodStr() noexcept;
 
     template <>
-    std::string GetMethodStr<HttpMethodEnum::GET>();
+    std::string GetMethodStr<HttpMethodEnum::GET>() noexcept;
 
     template <>
-    std::string GetMethodStr<HttpMethodEnum::POST>();
+    std::string GetMethodStr<HttpMethodEnum::POST>() noexcept;
     
     template <HttpMethodEnum... Methods>
-    std::vector<std::string> GetMethodsStr();
+    std::vector<std::string> GetMethodsStr() noexcept;
 
-    bool is_char(int c);
-    bool is_ctl(int c);
-    bool is_tspecial(int c);
+    bool is_char(int c) noexcept;
+    bool is_ctl(int c) noexcept;
+    bool is_tspecial(int c) noexcept;
 
-    const std::vector<int>& GetHttpVersionSupported();
-    const std::vector<std::string>& GetHttpMethodSupported();
-    const std::vector<HTTPStatusCodeEnum>& GetAllHttpStatus();
+    const std::vector<int>& GetHttpVersionSupported() noexcept;
+    const std::vector<std::string>& GetHttpMethodSupported() noexcept;
+    const std::vector<HTTPStatusCodeEnum>& GetAllHttpStatus() noexcept;
 
 } // httpc
 
