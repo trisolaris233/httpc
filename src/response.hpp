@@ -6,9 +6,13 @@
 #include <utility>
 #include <sstream>
 #include <fstream>
+#include <type_traits>
 // #include <filesystem>   // for C++17 filesystem
 #include <boost/asio.hpp>
 #include <boost/lexical_cast.hpp>
+#ifdef HTTPC_ENABLE_GZIP
+#include "gzip.hpp"
+#endif
 #include "utility.hpp"
 #include "request.hpp"
 
@@ -22,8 +26,20 @@ namespace httpc {
         std::vector<Header> headers;
         std::string message_body;
 
-        inline bool IsAsyncWriting() const noexcept {
-            return this->async_state_flag_;
+        inline bool IsEmptyStatusCode() const noexcept {
+            return static_cast<int>(this->status_code) == 0;
+        }
+
+        inline bool IsEmptyReasonPhrase() const noexcept {
+            return this->reason_phrase.empty();
+        }
+
+        inline bool IsEmptyHeaders() const noexcept {
+            return this->headers.empty();
+        }
+
+        inline bool IsEmptyMessageBody() const noexcept {
+            return this->message_body.empty();
         }
 
         inline bool Empty() const noexcept {
@@ -31,21 +47,101 @@ namespace httpc {
                  this->reason_phrase.empty() && this->message_body.empty();
         }
 
+        inline bool IsAsyncWriting() const noexcept {
+            return this->async_state_flag_;
+        }
+
+        template <typename IntType>
+        inline std::enable_if_t<std::is_integral_v<IntType>, bool>
+        SetHTTPVersion(IntType version) {
+            auto supported_version = GetHttpVersionSupported();
+            auto itr = std::find(supported_version.begin(), supported_version.end(), version);
+            if (itr == supported_version.end()) {
+                return false;
+            }
+            this->http_major_version = (*itr) / 10 % 10;
+            this->http_major_version = (*itr) % 10;
+            return true;
+        }
+
+        inline void SetStatusCode(HTTPStatusCodeEnum status_code_enum) noexcept {
+            this->status_code = status_code_enum;
+            this->reason_phrase = GetHTTPReasonPhrase(this->status_code);
+        } 
+
+        template <typename StringT>
+        inline Response& AddHeader(StringT&& field, StringT&& value) {
+            headers.emplace_back(std::forward<Header>({
+                std::forward<std::remove_reference_t<decltype(field)>>(field),
+                std::forward<std::remove_reference_t<decltype(value)>>(value)
+            }));
+            return *this;
+        }
+
+        inline Response& AddHeader(Header&& header) {
+            headers.emplace_back(std::forward<Header>(header));
+            return *this;
+        }
+
+        inline void ClearHeaders() noexcept {
+            this->headers.clear();
+        }
+
+        inline void SetDefaultHeaders() {
+            this->headers.clear();
+            this->headers.push_back({"Content-Type", "text/html"});
+        #ifdef HTTPC_ENABLE_GZIP
+            this->headers.push_back({"Content-Encoding", "gzip"});
+        #endif
+        }
+
+        #ifdef HTTPC_ENABLE_GZIP
+        inline Response& GzipEncode() {
+            httpc::compress(this->message_body, this->gzip_message_body_, true);
+            return *this;
+        }
+
+        std::string GetGzipEncode() const noexcept {
+            return this->gzip_message_body_;
+        }
+        #endif
+
+        inline void Clear() noexcept {
+            this->http_major_version = this->http_minor_version = 0;
+            this->status_code = static_cast<decltype(this->status_code)>(0);
+            this->reason_phrase.clear();
+            this->headers.clear();
+            this->message_body.clear();
+        #ifdef HTTPC_ENABLE_GZIP
+            this->gzip_message_body_.clear();
+        #endif
+        }
+
         inline void SetDefault(HTTPStatusCodeEnum status) {
             this->http_major_version = this->http_minor_version = 1;
             this->status_code = status;
             this->reason_phrase = GetHTTPReasonPhrase(status);
             this->headers.clear();
-            this->headers.push_back({"ContentType", "text/html"});
+            this->headers.push_back({"Content-Type", "text/html"});
+        #ifdef HTTPC_ENABLE_GZIP
+            this->headers.push_back({"Content-Encoding", "gzip"});
+        #endif
             this->message_body
                 .assign("<html><body><h1>")
                 .append(GetHTTPReasonPhrase(status))
                 .append("</h1></body></html>");
+        #ifdef HTTPC_ENABLE_GZIP
+            this->GzipEncode();
+        #endif
+            
             //MakeDefaultResponse(status, *this);
         }
 
-        inline void RenderString(const std::string& str) {
-            message_body.assign(str);
+        template <typename StringT>
+        inline void RenderString(StringT&& str) {
+            this->SetMessageBody_(
+                std::forward<std::remove_reference_t<decltype(str)>>(str)
+            );
         }
 
         template <typename T>
@@ -91,8 +187,6 @@ namespace httpc {
             });
         }
 
-        // template <typename T, typename Func>
-
         std::vector<boost::asio::const_buffer> ToBuffers() {
             std::vector<boost::asio::const_buffer> buffers;
             
@@ -126,6 +220,20 @@ namespace httpc {
             str.assign(std::move(ss.str()));
         }
 
+    #ifdef HTTPC_ENABLE_GZIP
+        void WriteGzipBuffer(std::string& str) {
+            std::stringstream ss;
+            ss << "HTTP/" << this->http_major_version << "." << this->http_minor_version
+               << " " << static_cast<int>(this->status_code) << " " << GetHTTPReasonPhrase(this->status_code) << GetCRLF();
+            for (const auto& header : this->headers) {
+                ss << header.field << ": " << header.value << GetCRLF();
+            }
+            this->GzipEncode();
+            ss << GetCRLF() << GetGzipEncode();
+            str.assign(std::move(ss.str()));
+        }
+    #endif
+
         friend std::ostream& operator<< (std::ostream& os, const Response& response) {
             os << "HTTP/" << response.http_major_version << "." << response.http_minor_version
                << " " << static_cast<int>(response.status_code) << " " << GetHTTPReasonPhrase(response.status_code) << std::endl;
@@ -151,9 +259,24 @@ namespace httpc {
         }
 
     private:
-        mutable bool    async_state_flag_{false};
+        mutable bool    async_state_flag_{ false };
         std::map<std::string, std::string>
                         variable_table_;
+    #ifdef HTTPC_ENABLE_GZIP    
+        std::string     gzip_message_body_;
+    #endif
+
+        template <typename StringT>
+        inline void SetMessageBody_(StringT&& str) {
+            this->message_body.assign(
+                std::forward<std::remove_reference_t<decltype(str)>>(str)
+            );
+        #ifdef HTTPC_ENABLE_GZIP
+            this->GzipEncode();
+        #endif
+            //std::cout << "SetMessageBody_" << std::endl;
+            //std::cout << this->message_body << std::endl;
+        }
 
     };
 

@@ -5,11 +5,17 @@ namespace httpc {
 
     void ConnectionManager::AddConnection(boost::asio::ip::tcp::socket&& socket)  {
         auto ptr = std::make_shared<Connection>(*this, std::move(socket));
-        while (this->atomic_mutex_);
-        this->atomic_mutex_ = true;
+        // while (this->atomic_mutex_);
+        // this->atomic_mutex_ = true;
         connections_.insert(ptr);
-        ptr->Start();
-        this->atomic_mutex_ = false;
+        ptr->Start(
+            std::bind(
+                &ConnectionManager::CloseConnection,
+                this,
+                std::placeholders::_1
+            )
+        );
+        // this->atomic_mutex_ = false;
     }
 
     void ConnectionManager::CloseAllConnection() {

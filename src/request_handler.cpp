@@ -4,32 +4,49 @@
 namespace httpc {
     
     void RequestHandler::Respond(Request& request, Response& response) {
-        // check whether http version is supported
-        auto HttpVersionSupported = GetHttpVersionSupported();
-        if (std::find(
-            HttpVersionSupported.begin(), 
-            HttpVersionSupported.end(), 
-            request.http_major_version * 10 + request.http_minor_version
-        ) == HttpVersionSupported.end()) {
-            return;
+        if (response.Empty()) {
+            //std::cout << "empty" << std::endl;
+            // check whether http version is supported
+            auto HttpVersionSupported = GetHttpVersionSupported();
+            if (std::find(
+                HttpVersionSupported.begin(), 
+                HttpVersionSupported.end(), 
+                request.http_major_version * 10 + request.http_minor_version
+            ) == HttpVersionSupported.end()) {
+                response.SetDefault(HTTPStatusCodeEnum::kHTTPVersionNotSupported);
+                return;
+            }
+
+            // check whether the http method is supported
+            auto HttpMethodSupported = GetHttpMethodSupported();
+            if (std::find(
+                HttpMethodSupported.begin(),
+                HttpMethodSupported.end(), 
+                request.method
+            ) == HttpMethodSupported.end()) {
+                response.SetDefault(HTTPStatusCodeEnum::kMethodNotAllowed);
+                return;
+            }
+
+            return response.SetDefault(HTTPStatusCodeEnum::kNotFound);   
         }
         
-        // check whether the http method is supported
-        auto HttpMethodSupported = GetHttpMethodSupported();
-        if (std::find(
-            HttpMethodSupported.begin(),
-            HttpMethodSupported.end(), 
-            request.method
-        ) == HttpMethodSupported.end()) {
-            // MakeDefaultResponse(
-            //     HTTPStatusCodeEnum::kMethodNotAllowed,
-            //     response
-            // );
-            return;
-        }
+        response.http_major_version = request.http_major_version;
+        response.http_minor_version = request.http_minor_version;
 
-        response.http_major_version = response.http_minor_version = 1;
-        response.status_code = HTTPStatusCodeEnum::kOk;
-        response.reason_phrase = GetHTTPReasonPhrase(response.status_code);
+        if (response.http_major_version == 1) {
+            // http/1.1
+            if (response.http_minor_version == 1) {
+                if (response.IsEmptyMessageBody()) {
+                    response.RenderString(GetHTTPReasonPhrase(response.status_code));
+                }
+                if (response.IsEmptyReasonPhrase() || response.IsEmptyStatusCode()) {
+                    response.SetStatusCode(HTTPStatusCodeEnum::kOk);
+                }
+                if (response.IsEmptyHeaders()) {
+                    response.SetDefaultHeaders();
+                }
+            }
+        }
     }
 } // httpc

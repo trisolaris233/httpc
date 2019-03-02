@@ -65,19 +65,6 @@ namespace httpc {
         ParseStatusEnum  parse_enum_;
         int              power_{1};
 
-        // int CountSpace(const std::string_view& str) {
-        //     int res = 0;
-        //     for(auto chr : str) {
-        //         if (chr == '\r' || chr == '\n') {
-        //             break; 
-        //         } else if (chr == ' ') {
-        //             ++res;
-        //         }
-        //     }
-        //     return res;
-        // }
-        
-
         template <typename CharT>
         ResultType ParseRequest(
                 Request& request_, CharT chr) {

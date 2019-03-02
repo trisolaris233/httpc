@@ -21,7 +21,7 @@ namespace httpc {
             , socket_(std::move(socket))
         {}
 
-        void Start();
+        void Start(std::function<void(std::shared_ptr<Connection>)> complete);
 
         void Close();
 
@@ -38,6 +38,8 @@ namespace httpc {
         Response                        response_;
         RequestHandler                  handler_;
         std::string                     write_buffer_;
+        std::function<void(std::shared_ptr<Connection>)>
+                                        complete_callback_;
         
         void DoRead();
         void DoWrite();

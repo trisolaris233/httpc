@@ -18,7 +18,10 @@ namespace httpc {
         using CallBackFunctionType = std::function<void(Request&, Response&)>;
         
         explicit HttpRouter(ConnectionManager& manager) noexcept :
-            manager_(manager) { }
+            manager_(manager),
+            error_404_response_() { 
+            this->error_404_response_.SetDefault(HTTPStatusCodeEnum::kNotFound);
+        }
 
         // the rules of registering general routers:
         // 1. router must be started with '/', or registeration will fail
@@ -115,6 +118,11 @@ namespace httpc {
             }, aspects_tuple);
         }
 
+        template <typename StringT>
+        inline void SetNotFoundResponse(StringT&& str) {
+            this->error_404_response_.RenderString(std::forward<std::remove_reference_t<decltype(str)>>(str));
+        }
+
         // search if there's a route that matches the route_directory,
         // if does, call the function that stored in map.
         void Route(
@@ -138,7 +146,7 @@ namespace httpc {
             }
 
             // try fezzy match
-            std::size_t num_of_slash{1};
+            std::size_t num_of_slash{ 1 };
             for (
                 auto pos_of_slash = route_directory.rfind('/');
                 pos_of_slash != std::string::npos;
@@ -171,6 +179,7 @@ namespace httpc {
                     return reg.second(request, response);
                 }   
             }
+
         }
         
     private:
@@ -183,6 +192,7 @@ namespace httpc {
         std::map<std::string,
             std::vector<std::pair<std::regex, CallBackFunctionType>>>
                                                     regex_router_map_;
+        Response                                    error_404_response_;
 
         
         template <typename Function, typename... Aspects>

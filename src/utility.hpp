@@ -1,8 +1,13 @@
 #pragma once
 
+#define HTTPC_DEBUG
+
 #include <string>
 #include <vector>
 #include <memory>
+#ifdef HTTPC_DEBUG
+#include <iostream>
+#endif
 #include <functional>
 
 #if defined(__gnu_linux__) || defined(sun) || defined(__sun) || defined(_AIX)
@@ -104,5 +109,6 @@ namespace httpc {
             return (ptr->*method)(std::forward<Args>(args)...);
         };
     }
+
 
 } // httpc

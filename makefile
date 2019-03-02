@@ -1,6 +1,6 @@
 CC=g++
 OPT=-std=c++17
-LIB=-lpthread
+LIB=-lpthread -lz
 
 
 httpc: src/connection_manager.o src/connection.o src/http_router.o src/request_handler.o src/utility.o src/main2.cpp
@@ -24,3 +24,7 @@ clean:
 
 try:
 	$(CC) src/main2.cpp src/utility.cpp src/connection.cpp src/connection_manager.cpp src/request_handler.cpp -o src/httpc $(OPT) $(LIB)
+
+
+debug:
+	$(CC) src/main2.cpp src/utility.cpp src/connection.cpp src/connection_manager.cpp src/request_handler.cpp -o src/httpc $(OPT) $(LIB) -g
