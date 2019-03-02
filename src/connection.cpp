@@ -16,10 +16,10 @@ namespace httpc {
     }
 
     void Connection::DoRead() {
-        auto self(shared_from_this());
+        // auto self(shared_from_this());
         socket_.async_read_some(
             boost::asio::buffer(buffer_),
-            [this, self] 
+            [this/*, self*/] 
             (boost::system::error_code ec, std::size_t bytes_transferred) {
                 if(!ec) {
                     // std::cout << "bytes_transferred = " << bytes_transferred << std::endl;
@@ -63,14 +63,14 @@ namespace httpc {
                         this->response_.SetDefault(HTTPStatusCodeEnum::kBadRequest);
                     }
                 } else {
-                    std::cerr << ec.message() << std::endl;
+                    std::cerr << ec.message() << "?" << std::endl;
                 }
             }
         );
     }
 
     void Connection::DoWrite()  {
-        auto self{shared_from_this()};
+        // auto self{shared_from_this()};
         // std::cout << "write" << std::endl;
         // this->write_buffer_ = response_.ToBuffers();
         this->response_.WriteBuffer(this->write_buffer_);
@@ -78,7 +78,7 @@ namespace httpc {
         boost::asio::async_write(
             socket_,
             boost::asio::buffer(this->write_buffer_),
-            [this, self](boost::system::error_code ec, std::size_t bytes_transferred) {
+            [this](boost::system::error_code ec, std::size_t bytes_transferred) {
                 if (!ec) {
                     // std::cout << "byte_transferred = " << bytes_transferred << std::endl;
                     boost::system::error_code ignored_ec;
@@ -87,7 +87,7 @@ namespace httpc {
                         ignored_ec
                     );
                     // delete the connection
-                    // this->manager_.CloseConnection(self);
+                    //if (this->parser_)
                 } else {
                     std::cerr << ec.message() << std::endl;
                 }

@@ -1,9 +1,16 @@
 #pragma once
 
 #include <regex>
+#include <array>
+#include <mutex>
+#include <atomic>
+#include <future>
+#include <thread>
 #include <vector>
 #include <string>
 #include <boost/asio.hpp>
+#include "utility.hpp"
+#include "thread_pool.hpp"
 #include "connection_manager.hpp"
 
 namespace httpc {
@@ -13,11 +20,13 @@ namespace httpc {
         Server(
             const std::string& address,
             const std::string& port,
-            const std::string& document_root
+            const std::string& document_root,
+            std::size_t num_thread = GetCPUCoreNumber()
         )
         : io_context_(1)
         , acceptor_(io_context_)
-        , document_root_(document_root) {
+        , document_root_(document_root)
+        , num_of_thread_(num_thread) {
             boost::asio::ip::tcp::resolver resolver(io_context_);
             boost::asio::ip::tcp::endpoint endpoint = 
                 *(resolver.resolve(address, port)).begin();
@@ -25,7 +34,10 @@ namespace httpc {
             acceptor_.bind(endpoint);
             acceptor_.listen();
 
-            Accept();
+            // Accept();
+            //f();
+
+            this->AssignMultithreadAccept_();
         }
 
 
@@ -90,15 +102,29 @@ namespace httpc {
         
 
     private:
-        boost::asio::io_context io_context_;
-        boost::asio::ip::tcp::acceptor acceptor_;
-        std::string document_root_;
-        ConnectionManager manager_;
+        boost::asio::io_context             io_context_;
+        boost::asio::ip::tcp::acceptor      acceptor_;
+        std::string                         document_root_;
+        ConnectionManager                   manager_;
+        std::mutex                          acceptor_mutex_;
+        std::atomic<bool>                   atomic_accept_flag_{false};
+        std::size_t                         num_of_thread_;
+        std::shared_ptr<ThreadPool>         thread_pool_;
+
+        void AssignMultithreadAccept_() {
+            this->thread_pool_ = std::make_shared<ThreadPool>(num_of_thread_);
+            for (std::size_t i = 0; i < this->num_of_thread_; ++i) {
+                this->thread_pool_->AddTask([this]{
+                    this->Accept_();
+                });
+            }
+        }
+        
         // std::shared_ptr<std::thread> 
         //                     thread_;
-
-
-        void Accept() {
+        void Accept_() {
+            while (this->atomic_accept_flag_);
+            this->atomic_accept_flag_ = true;
             acceptor_.async_accept(
                 [this](boost::system::error_code ec, boost::asio::ip::tcp::socket socket) {
                     // pass it to connection_manager
@@ -108,7 +134,8 @@ namespace httpc {
                     } else {
                         std::cout << "err: " << ec.message() << std::endl;
                     }
-                    Accept();
+                    this->atomic_accept_flag_ = false;
+                    Accept_();
                 }
             );
         }

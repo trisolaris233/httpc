@@ -25,6 +25,10 @@ namespace httpc {
 
         void Close();
 
+        bool IsSocketOpen() const {
+            return this->socket_.is_open();
+        }
+
     private:
         ConnectionManager&              manager_;
         boost::asio::ip::tcp::socket    socket_;
@@ -37,5 +41,6 @@ namespace httpc {
         
         void DoRead();
         void DoWrite();
+        
     };
 }

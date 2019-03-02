@@ -192,4 +192,18 @@ namespace httpc {
         return AllHTTPStatus;
     }
 
+    std::size_t GetCPUCoreNumber() noexcept
+    {
+        #if defined(WIN32)
+            SYSTEM_INFO info;
+            GetSystemInfo(&info);
+            return info.dwNumberOfProcessors;
+        #elif defined(__gnu_linux__) || defined(sun) || defined(__sun) || defined(_AIX)
+            //#include <sys/sysinfo.h>
+            return get_nprocs();
+        #else
+        #error unsupported os
+        #endif
+    }
+
 } // httpc

@@ -76,7 +76,7 @@ namespace httpc {
         inline AsyncRenderFromStaticFile(T&& str) {
             auto handler = std::async(std::launch::async, [&str, this]() {
                 // set the async writing state
-                this->async_state_flag = true;
+                this->async_state_flag_ = true;
                 std::ifstream local_file(
                     std::forward<std::remove_reference_t<decltype(str)>>(str)
                 );
@@ -87,7 +87,7 @@ namespace httpc {
                         static_cast<typename decltype(this->message_body)::value_type>(chr)
                     );
                 }
-                this->async_state_flag = false;
+                this->async_state_flag_ = false;
             });
         }
 
@@ -143,7 +143,7 @@ namespace httpc {
                     std::forward<std::remove_reference_t<decltype(str)>>(str),
                     std::forward<std::string>(
                         boost::lexical_cast<std::string>(
-                            std::forward<std::remove_reference_t<decltype(valye)>>(value)
+                            std::forward<std::remove_reference_t<decltype(value)>>(value)
                         )
                     )
                 )

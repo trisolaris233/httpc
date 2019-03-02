@@ -1,8 +1,15 @@
-#ifndef UTILITY_HPP
-#define UTILITY_HPP
+#pragma once
 
 #include <string>
 #include <vector>
+#include <memory>
+#include <functional>
+
+#if defined(__gnu_linux__) || defined(sun) || defined(__sun) || defined(_AIX)
+#include <sys/sysinfo.h>   
+#elif defined(WIN32)
+#include <windows.h>
+#endif
 
 namespace httpc {
     // the name-value pair 
@@ -87,6 +94,15 @@ namespace httpc {
     const std::vector<std::string>& GetHttpMethodSupported() noexcept;
     const std::vector<HTTPStatusCodeEnum>& GetAllHttpStatus() noexcept;
 
-} // httpc
+    std::size_t GetCPUCoreNumber() noexcept;
 
-#endif
+    // bind a member function into a general function
+    template <typename ResultT, typename ClassT, typename... Args>
+    std::function<ResultT(Args...)> BindMember(std::shared_ptr<ClassT> obj, ResultT(ClassT::*method)(Args...)) {
+        return [=](Args&&... args) -> ResultT {
+            auto ptr = obj.get();
+            return (ptr->*method)(std::forward<Args>(args)...);
+        };
+    }
+
+} // httpc
