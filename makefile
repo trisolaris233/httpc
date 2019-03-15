@@ -1,6 +1,6 @@
 CC=g++
 OPT=-std=c++17
-LIB=-lpthread -lz
+LIB=-lpthread -lz -lstdc++fs
 
 
 httpc: src/connection_manager.o src/connection.o src/http_router.o src/request_handler.o src/utility.o src/main2.cpp

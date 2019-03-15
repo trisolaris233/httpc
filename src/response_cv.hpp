@@ -162,6 +162,10 @@ namespace httpc {
 
 	inline const char CRLF[] = { '\r', '\n' };
 	inline const char LastChunk[] = { '0', '\r', '\n' };
+
+    inline std::string_view ImageExtensions[] = {
+        ".jpg", ".jpeg", ".gif", ".png"
+    };
 	// inline const std::string http_chunk_header =
 	// 	"HTTP/1.1 200 OK\r\n"
 	// 	"Transfer-Encoding: chunked\r\n";

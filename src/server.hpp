@@ -30,7 +30,8 @@ namespace httpc {
         , acceptor_(io_context_)
         //, manager_(io_context_)
         , document_root_(document_root)
-        , num_of_thread_(num_thread) {
+        , num_of_thread_(num_thread)
+        , http_router_(*this) {
             boost::asio::ip::tcp::resolver resolver(io_context_);
             boost::asio::ip::tcp::endpoint endpoint = 
                 *(resolver.resolve(address, port)).begin();
@@ -157,5 +158,17 @@ namespace httpc {
             );
         }
     };
+
+
+
+
+
+
+    void HttpRouter::InvokeLocalFileRenderer(
+        const std::string& route_directory,
+        Response& response
+    ) {
+        response.RenderFromStaticFile(this->server_.GetDocumentRoot() + route_directory);
+    }
 
 } // httpc

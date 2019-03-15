@@ -199,17 +199,17 @@ namespace httpc {
             // auto self{shared_from_this()};
             // std::cout << "write" << std::endl;
             // this->write_buffer_ = response_.ToBuffers();
-        #ifdef HTTPC_ENABLE_GZIP 
-            this->response_.WriteGzipBuffer(this->write_buffer_);
-        #else
-            // this->response_.WriteBuffer(this->write_buffer_);
-        #endif
+// #ifdef HTTPC_ENABLE_GZIP 
+//             this->response_.WriteGzipBuffer(this->write_buffer_);
+//             // this->response_.WriteBuffer(this->write_buffer_);
+// #endif
             std::vector<boost::asio::const_buffer> buffers = this->response_.ToBuffers();
             // for(auto x : buffers) {
             //     std::cout << static_cast<const char*>(x.data()) << std::endl;
             // }
             // std::cout << response_ << std::endl;
             // this->ResetKeepAliveTimer();
+            debug().dg(this->response_).lf();
             this->ActiveKeepAliveTimer();
             boost::asio::async_write(
                 socket_,

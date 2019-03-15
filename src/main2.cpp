@@ -1,5 +1,5 @@
 
-
+#define HTTPC_ENABLE_GZIP
 #include "connection.hpp"
 // #include "gzip.hpp"
 #include "http_router.hpp"
@@ -175,6 +175,9 @@ int main(int argc, char* argv[]) {
     });
     server.AddRouter("/root/*",[](Request&, Response& res) {
         res.RenderString("hello, root");
+    });
+    server.AddRouter("/static_file", [&server](Request&, Response& res) {
+        res.RenderFromStaticFile(server.GetDocumentRoot() + "/index.html");
     });
 
     // server.AddRouter("/", [](Request&, Response& res){

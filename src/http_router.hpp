@@ -12,15 +12,15 @@
 
 namespace httpc {
     
-    class ConnectionManager;
+    // class ConnectionManager;
+    class Server;
     class HttpRouter {
     public:
         using CallBackFunctionType = std::function<void(Request&, Response&)>;
         
-        explicit HttpRouter(/*ConnectionManager& manager*/) noexcept :
-            //manager_(manager),
-            error_404_response_() { 
-            this->error_404_response_.SetDefault(HTTPStatusCodeEnum::kNotFound);
+        explicit HttpRouter(Server& server) noexcept :
+            server_(server) { 
+            // this->error_404_response_.SetDefault(HTTPStatusCodeEnum::kNotFound);
         }
 
         // the rules of registering general routers:
@@ -118,19 +118,29 @@ namespace httpc {
             }, aspects_tuple);
         }
 
-        template <typename StringT>
-        inline void SetNotFoundResponse(StringT&& str) {
-            this->error_404_response_.RenderString(std::forward<std::remove_reference_t<decltype(str)>>(str));
-        }
 
         // search if there's a route that matches the route_directory,
         // if does, call the function that stored in map.
+
+        void InvokeLocalFileRenderer(
+            const std::string& route_directory,
+            Response& response
+        );
+
         void Route(
             const std::string& http_method,
             const std::string& route_directory, 
             Request& request, 
             Response& response
         ) {
+            
+            if (route_directory.find('.') != std::string::npos) {
+                std::cout << "Render local file" << std::endl;
+                this->InvokeLocalFileRenderer(route_directory, response);
+                // response.RenderFromStaticFile(this->server_->GetDocumentRoot() + route_directory);
+                return;
+            }
+
             bool end_with_slash = (route_directory.back() == '/');
             // try to search directory
             std::string key(http_method + route_directory);
@@ -180,6 +190,7 @@ namespace httpc {
                 }   
             }
 
+            response.SetDefault(HTTPStatusCodeEnum::kNotFound);
         }
         
     private:
@@ -192,7 +203,9 @@ namespace httpc {
         std::map<std::string,
             std::vector<std::pair<std::regex, CallBackFunctionType>>>
                                                     regex_router_map_;
-        Response                                    error_404_response_;
+        // std::shared_ptr<Server>                     server_;
+        Server&                                     server_;
+        // Response                                    error_404_response_;
 
         
         template <typename Function, typename... Aspects>
