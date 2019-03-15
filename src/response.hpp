@@ -26,6 +26,14 @@ namespace httpc {
         std::vector<Header> headers;
         std::string message_body;
 
+        inline void Reset() {
+            this->http_major_version = this->http_minor_version = 0;
+            this->status_code = static_cast<HTTPStatusCodeEnum>(0);
+            this->reason_phrase.clear();
+            this->headers.clear();
+            this->message_body.clear();
+        }
+
         inline bool IsEmptyStatusCode() const noexcept {
             return static_cast<int>(this->status_code) == 0;
         }
@@ -68,19 +76,36 @@ namespace httpc {
             this->status_code = status_code_enum;
             this->reason_phrase = GetHTTPReasonPhrase(this->status_code);
         } 
-
+        
         template <typename StringT>
         inline Response& AddHeader(StringT&& field, StringT&& value) {
-            headers.emplace_back(std::forward<Header>({
-                std::forward<std::remove_reference_t<decltype(field)>>(field),
-                std::forward<std::remove_reference_t<decltype(value)>>(value)
-            }));
+            bool flag = false;
+            for (auto itr = this->headers.begin(); itr != this->headers.end(); ++itr) {
+                if (itr->field == field) {
+                    itr->value = value;
+                    flag = true;
+                    break;
+                }
+            }
+            if (!flag) {
+                headers.emplace_back(std::forward<Header>({
+                    std::forward<StringT>(field),
+                    std::forward<StringT>(value)
+                }));
+            }
+            
+            return *this;
+        }
+
+        template <typename CharT>
+        inline std::enable_if_t<std::is_same_v<std::decay_t<CharT>, char>, Response&>
+        AddHeader(CharT* field, CharT* value) {
+            this->AddHeader(std::string(field), std::string(value));
             return *this;
         }
 
         inline Response& AddHeader(Header&& header) {
-            headers.emplace_back(std::forward<Header>(header));
-            return *this;
+            return this->AddHeader(std::forward<std::string>(header.field), std::forward<std::string>(header.value));
         }
 
         inline void ClearHeaders() noexcept {
@@ -88,10 +113,29 @@ namespace httpc {
         }
 
         inline void SetDefaultHeaders() {
-            this->headers.clear();
-            this->headers.push_back({"Content-Type", "text/html"});
+            //this->headers.clear();
+            // this->headers.push_back({"Content-Type", "text/html"});
+            if (this->http_major_version == 1 &&  this->http_minor_version == 1) {
+                this->AddHeader("Connection", "keep-alive");
+            }
+            this->AddHeader("Server", "httpc");
+            // bool connection_flag = false;
+            // bool server_flag = false;
+            // for(auto itr = this->headers.begin(); itr != this->headers.end(); ++itr) {
+            //     if (itr->field == "Connection") {
+            //         connection_flag = true;
+            //         if (server_flag) break;
+            //     } else if (itr->field == "Server") {
+            //         server_flag = true;
+            //         if (connection_flag) break;
+            //     }
+            // }
+            // if (!connection_flag)
+            //     this->headers.emplace_back(Header{"Connection", "keep-alive"});
+            // if (!server_flag)
+            //     this->headers.emplace_back(Header{"Server", "httpc"});
         #ifdef HTTPC_ENABLE_GZIP
-            this->headers.push_back({"Content-Encoding", "gzip"});
+            this->AddHeader("Content-Encoding", "gzip");
         #endif
         }
 
@@ -122,7 +166,7 @@ namespace httpc {
             this->status_code = status;
             this->reason_phrase = GetHTTPReasonPhrase(status);
             this->headers.clear();
-            this->headers.push_back({"Content-Type", "text/html"});
+            this->AddHeader("Content-Type", "text/html");
         #ifdef HTTPC_ENABLE_GZIP
             this->headers.push_back({"Content-Encoding", "gzip"});
         #endif
@@ -140,8 +184,9 @@ namespace httpc {
         template <typename StringT>
         inline void RenderString(StringT&& str) {
             this->SetMessageBody_(
-                std::forward<std::remove_reference_t<decltype(str)>>(str)
+                std::forward<StringT>(str)
             );
+            
         }
 
         template <typename T>
@@ -189,22 +234,33 @@ namespace httpc {
 
         std::vector<boost::asio::const_buffer> ToBuffers() {
             std::vector<boost::asio::const_buffer> buffers;
-            
-            std::stringstream ss;
-            ss  << "HTTP/1" << this->http_major_version << "." << this->http_minor_version 
-                << " " << static_cast<int>(this->status_code)
-                << " " << GetHTTPReasonPhrase(this->status_code) << GetCRLF();
-            buffers.push_back(boost::asio::buffer(ss.str()));
-            
+
+            buffers.emplace_back(ToBuffer(this->status_code));
+
             for (const auto& header : this->headers) {
-                ss.clear();
-                ss << header.field << ": " << header.value << GetCRLF();
-                buffers.push_back(
-                    boost::asio::buffer(ss.str())
-                );
+                buffers.emplace_back(boost::asio::buffer(header.field));
+                buffers.emplace_back(boost::asio::buffer(NameValueSeparator));
+                buffers.emplace_back(boost::asio::buffer(header.value));
+                buffers.emplace_back(boost::asio::buffer(CRLF));
             }
-            buffers.push_back(boost::asio::buffer(GetCRLF()));
-            buffers.push_back(boost::asio::buffer(this->message_body));
+            buffers.emplace_back(boost::asio::buffer(CRLF));
+            buffers.emplace_back(boost::asio::buffer(this->message_body));
+            
+            // std::stringstream ss;
+            // ss  << "HTTP/1" << this->http_major_version << "." << this->http_minor_version 
+            //     << " " << static_cast<int>(this->status_code)
+            //     << " " << GetHTTPReasonPhrase(this->status_code) << GetCRLF();
+            // buffers.push_back(boost::asio::buffer(ss.str()));
+            
+            // for (const auto& header : this->headers) {
+            //     ss.clear();
+            //     ss << header.field << ": " << header.value << GetCRLF();
+            //     buffers.emplace_back(
+            //         boost::asio::buffer(ss.str())
+            //     );
+            // }
+            // buffers.push_back(boost::asio::buffer(GetCRLF()));
+            // buffers.push_back(boost::asio::buffer(this->message_body));
 
             return buffers;
         }
@@ -212,11 +268,12 @@ namespace httpc {
         void WriteBuffer(std::string& str) {
             std::stringstream ss;
             ss << "HTTP/" << this->http_major_version << "." << this->http_minor_version
-               << " " << static_cast<int>(this->status_code) << " " << GetHTTPReasonPhrase(this->status_code) << GetCRLF();
+               << " " << static_cast<int>(this->status_code) << " " << GetHTTPReasonPhrase(this->status_code) << CRLF;
             for (const auto& header : this->headers) {
-                ss << header.field << ": " << header.value << GetCRLF();
+                ss << header.field << ": " << header.value << CRLF;
             }
-            ss << GetCRLF() << this->message_body;
+            ss << CRLF << this->message_body;
+            // this->AddHeader({"Content-Length", boost::lexical_cast<std::string>(this->message_body.length())});
             str.assign(std::move(ss.str()));
         }
 
@@ -266,11 +323,27 @@ namespace httpc {
         std::string     gzip_message_body_;
     #endif
 
+        inline void SetContentLength_() {
+            for (auto itr = this->headers.begin(); itr != this->headers.end(); ++itr) {
+                if (itr->field == "Content-Length") {
+                    itr->value.assign(boost::lexical_cast<std::string>(this->message_body.length()));
+                    return;
+                }
+            }
+            this->headers.emplace_back(
+                Header{
+                    "Content-Length", 
+                    boost::lexical_cast<std::string>(this->message_body.length())
+                }
+            );
+        }
+
         template <typename StringT>
         inline void SetMessageBody_(StringT&& str) {
             this->message_body.assign(
-                std::forward<std::remove_reference_t<decltype(str)>>(str)
+                std::forward<StringT>(str)
             );
+            this->SetContentLength_();
         #ifdef HTTPC_ENABLE_GZIP
             this->GzipEncode();
         #endif

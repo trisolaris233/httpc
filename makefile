@@ -23,8 +23,8 @@ clean:
 	rm src/*.o
 
 try:
-	$(CC) src/main2.cpp src/utility.cpp src/connection.cpp src/connection_manager.cpp src/request_handler.cpp -o src/httpc $(OPT) $(LIB)
+	$(CC) src/main2.cpp src/utility.cpp src/request_handler.cpp -o src/httpc $(OPT) $(LIB)
 
 
 debug:
-	$(CC) src/main2.cpp src/utility.cpp src/connection.cpp src/connection_manager.cpp src/request_handler.cpp -o src/httpc $(OPT) $(LIB) -g
+	$(CC) src/main2.cpp src/utility.cpp src/request_handler.cpp -o src/httpc $(OPT) $(LIB) -g

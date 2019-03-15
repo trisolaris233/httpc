@@ -17,8 +17,8 @@ namespace httpc {
     public:
         using CallBackFunctionType = std::function<void(Request&, Response&)>;
         
-        explicit HttpRouter(ConnectionManager& manager) noexcept :
-            manager_(manager),
+        explicit HttpRouter(/*ConnectionManager& manager*/) noexcept :
+            //manager_(manager),
             error_404_response_() { 
             this->error_404_response_.SetDefault(HTTPStatusCodeEnum::kNotFound);
         }
@@ -183,7 +183,7 @@ namespace httpc {
         }
         
     private:
-        ConnectionManager& manager_;
+        //ConnectionManager& manager_;
         // this router is for directly router
         std::map<std::string, CallBackFunctionType> directly_router_map_;
         // for wildcard router

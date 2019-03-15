@@ -38,11 +38,19 @@ namespace httpc {
             kIndeterminate
         };
 
-        RequestParser() = default;
+        RequestParser() noexcept :
+            parse_enum_(kStart) {
+        }
 
-        explicit RequestParser(const std::string_view& request) :
+        explicit RequestParser(const std::string_view& request) noexcept :
             request_str_(request),
             parse_enum_(kStart) {
+        }
+
+        void Reset() {
+            this->parse_enum_ = kStart;
+            this->power_ = 1;
+            this->request_str_.clear();
         }
 
         template <typename InputIterator>
@@ -55,7 +63,7 @@ namespace httpc {
                 }
 
             }
-            std::cout << "end of parse" << std::endl;
+            //std::cout << "end of parse" << std::endl;
             return std::make_tuple(kIndeterminate, begin);
         }
         

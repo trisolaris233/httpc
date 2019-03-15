@@ -1,0 +1,141 @@
+#include <memory>
+#include <iostream>
+#include <boost/asio.hpp>
+#include "connection.hpp" 
+#include "request_parser.hpp"
+#include "connection_manager.hpp"
+
+namespace httpc {
+
+    void Connection::Start(/*std::function<void(std::shared_ptr<Connection>)> complete()*/) {
+        // this->socket_.set_option(boost::asio::socket_base::keep_alive(true));
+        //this->complete_callback_ = complete;
+        DoRead();
+    }
+
+    void Connection::Close() {
+        this->socket_.close();
+    }
+
+    void Connection::ShutDownSocket_() {
+        boost::system::error_code ignored_ec;
+        this->socket_.shutdown(
+            boost::asio::ip::tcp::socket::shutdown_both,
+            ignored_ec
+        );
+    }
+
+    void Connection::HandleRead_(
+            boost::system::error_code const& ec, std::size_t bytes_transferred
+    ) {
+        auto parse_res = 
+            this->parser_.Parse(
+                this->request_, this->buffer_.data(),
+                this->buffer_.data() + bytes_transferred
+            );
+        // get the enum value of parse result.
+        auto res_enum = std::get<0>(parse_res);
+        
+        // if a request if parsed completely
+        if (res_enum == RequestParser::kGood) {
+            // first forward to user bussiness
+            // std::cout << "bussiness" << std::endl;
+            this->request_.uri.Update();
+            this->http_router_.Route(
+                this->request_.method,
+                this->request_.uri.GetUri(), 
+                this->request_, 
+                this->response_
+            );
+
+            // std::cout << std::boolalpha << this->response_.Empty() << std::endl;
+            // complete the response.
+            this->handler_.Respond(
+                this->request_,
+                this->response_
+            );
+
+            this->DoWrite();
+            //this->ResetKeepAliveTimer();
+        } else if (res_enum == RequestParser::kIndeterminate) {
+            //this->ResetKeepAliveTimer();
+            this->DoRead();
+        } else {   // make a bad request.
+            this->response_.SetDefault(HTTPStatusCodeEnum::kBadRequest);
+            this->DoWrite();
+        }
+    }
+
+    void Connection::ResetKeepAliveTimer() {
+        this->keep_alive_timer_.expires_from_now(std::chrono::seconds{60});
+        this->keep_alive_timer_.async_wait(
+        [self = this->shared_from_this()] (boost::system::error_code const& ec) {
+            //debug().dg("enter timer expire").lf();
+            if (ec) {
+                return;
+            }
+            //else {
+            //debug().dg(ec.message()).lf();
+            //}
+            debug().dg("close myself").lf();
+            self->Close();
+        });
+    }
+
+    void Connection::DoRead() {
+        this->ResetKeepAliveTimer();
+        //debug().dg("enter Connection::DoRead()").lf();
+        socket_.async_read_some(
+            boost::asio::buffer(buffer_),
+            [this, self = this->shared_from_this()] 
+            (boost::system::error_code const& ec, std::size_t bytes_transferred) {
+                if (ec) {
+                    if (ec == boost::asio::error::eof) {
+                        //debug().dg("eof").lf();
+                        this->ShutDownSocket_();
+                    }       
+                }
+                this->HandleRead_(ec, bytes_transferred);
+                //this->Close();
+            }
+        );
+    }
+
+    void Connection::DoWrite()  {
+        // auto self{shared_from_this()};
+        // std::cout << "write" << std::endl;
+        // this->write_buffer_ = response_.ToBuffers();
+    #ifdef HTTPC_ENABLE_GZIP 
+        this->response_.WriteGzipBuffer(this->write_buffer_);
+    #else
+        this->response_.WriteBuffer(this->write_buffer_);
+    #endif
+        // std::cout << response_ << std::endl;
+        this->ResetKeepAliveTimer();
+        boost::asio::async_write(
+            socket_,
+            boost::asio::buffer(this->write_buffer_),
+            [this, self = this->shared_from_this()]
+            (boost::system::error_code ec, std::size_t bytes_transferred) {
+                if (ec) {
+                    if (ec == boost::asio::error::eof) {
+                        
+                    }
+                    // std::cout << "byte_transferred = " << bytes_transferred << std::endl;
+                    debug().dg("dowrite shut").lf();
+                    boost::system::error_code ignored_ec;
+                    socket_.shutdown(
+                        boost::asio::ip::tcp::socket::shutdown_both,
+                        ignored_ec
+                    );
+                    // delete the connection
+                    //if (this->parser_)
+                } else {
+                    std::cerr << ec.message() << std::endl;
+                    this->Close();
+                }
+            }
+        );
+    }
+    
+}

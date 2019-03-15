@@ -3,6 +3,7 @@
 #include <string>
 #include <vector>
 #include <iostream>
+#include <algorithm>
 #include "uri.hpp"
 #include "utility.hpp"
 
@@ -32,6 +33,28 @@ namespace httpc {
         std::vector<Header>::const_iterator HeaderCEnd() const {
             return headers.end();
         }
+        inline const int HttpVersion() const noexcept {
+            return this->http_major_version * 10 + this->http_minor_version;
+        }
+        template <typename StringT>
+        auto FindHeader(StringT&& str) const {
+            for (auto itr = this->HeaderCBegin(); itr != this->HeaderCEnd(); ++itr) {
+                if (itr->field == str) {
+                    return itr;
+                }
+            }
+            return this->HeaderCEnd();
+        }
+
+
+        inline void Reset() {
+            this->method.clear();
+            this->uri.Reset();
+            this->http_major_version = this->http_minor_version = 0;
+            this->headers.clear();
+            this->message_body.clear();
+        }
+        
 
         friend std::ostream& operator<<(std::ostream& os, const Request& request) {
             os << request.method 

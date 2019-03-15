@@ -1,3 +1,4 @@
+#include "debug.hpp"
 #include "utility.hpp"
 #include "request_handler.hpp"
 
@@ -13,6 +14,7 @@ namespace httpc {
                 HttpVersionSupported.end(), 
                 request.http_major_version * 10 + request.http_minor_version
             ) == HttpVersionSupported.end()) {
+                //debug().dg("ver").lf();
                 response.SetDefault(HTTPStatusCodeEnum::kHTTPVersionNotSupported);
                 return;
             }
@@ -36,16 +38,15 @@ namespace httpc {
 
         if (response.http_major_version == 1) {
             // http/1.1
-            if (response.http_minor_version == 1) {
-                if (response.IsEmptyMessageBody()) {
-                    response.RenderString(GetHTTPReasonPhrase(response.status_code));
-                }
+            if (response.http_minor_version == 1 || response.http_minor_version == 0) {
                 if (response.IsEmptyReasonPhrase() || response.IsEmptyStatusCode()) {
                     response.SetStatusCode(HTTPStatusCodeEnum::kOk);
                 }
-                if (response.IsEmptyHeaders()) {
-                    response.SetDefaultHeaders();
+                if (response.IsEmptyMessageBody()) {
+                    response.RenderString(GetHTTPReasonPhrase(response.status_code));
                 }
+                
+                response.SetDefaultHeaders();
             }
         }
     }

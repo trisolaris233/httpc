@@ -1,4 +1,5 @@
 
+
 #include "connection.hpp"
 // #include "gzip.hpp"
 #include "http_router.hpp"
@@ -9,7 +10,7 @@
 #include "response.hpp"
 #include "server.hpp"
 #include "utility.hpp"
-#include "connection_manager.hpp"
+//#include "connection_manager.hpp"
 #include <iostream>
 
 using httpc::Request;
@@ -169,27 +170,34 @@ int main(int argc, char* argv[]) {
         std::string(argv[1]), 
         "/home/sakakiyukiho/dev/cpp/httpc/static"
     );
+    server.AddRouter("/root", [](Request&, Response& res) {
+        res.RenderString("hello, world");
+    });
+    server.AddRouter("/root/*",[](Request&, Response& res) {
+        res.RenderString("hello, root");
+    });
 
-    server.AddRouter("/", [](Request&, Response& res){
-        //std::cout << "enter bussiness" << std::endl;
-        res.RenderString("hello world");
-    });
-    server.AddRouter("/index/?", [](Request&, Response& res) {
-        std::cout << "enter /index?" << std::endl;
-        res.RenderString("This is the index page of router /index?");
-    });
-    server.AddRouter(
-        std::regex("/[^/]+/[^/]+/[^/]+/{0,1}"),
-        [](Request&, Response& res) {
-            std::cout << "enter regex" << std::endl;
-            res.RenderString("If you see this page that means you've entered /*/*[/] route");
-        });
-    server.AddRouter("/index.html", [&server](Request&, Response& res) {
-        res.RenderFromStaticFile(server.GetDocumentRoot() + "/index.html");
-    });
-    server.AddRouter("/index2.html", [&server](Request&, Response& res) {
-        res.AsyncRenderFromStaticFile(server.GetDocumentRoot() + "/index.html");
-    });
+    // server.AddRouter("/", [](Request&, Response& res){
+    //     //std::cout << "enter bussiness" << std::endl;
+    //     res.RenderString("hello world");
+    //     httpc::debug().dg("root").lf();
+    // });
+    // server.AddRouter("/index/?", [](Request&, Response& res) {
+    //     std::cout << "enter /index?" << std::endl;
+    //     res.RenderString("This is the index page of router /index?");
+    // });
+    // server.AddRouter(
+    //     std::regex("/[^/]+/[^/]+/[^/]+/{0,1}"),
+    //     [](Request&, Response& res) {
+    //         std::cout << "enter regex" << std::endl;
+    //         res.RenderString("If you see this page that means you've entered /*/*[/] route");
+    //     });
+    // server.AddRouter("/index.html", [&server](Request&, Response& res) {
+    //     res.RenderFromStaticFile(server.GetDocumentRoot() + "/index.html");
+    // });
+    // server.AddRouter("/index2.html", [&server](Request&, Response& res) {
+    //     res.AsyncRenderFromStaticFile(server.GetDocumentRoot() + "/index.html");
+    // });
 
     server.Start();
 

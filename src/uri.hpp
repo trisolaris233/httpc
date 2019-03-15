@@ -72,7 +72,11 @@ namespace httpc {
             }
         }
 
-        
+        inline void Reset() {
+            this->original_.clear();
+            this->uri_.clear();
+            this->query_.clear();
+        }
 
         inline void Update() {
             ParseUri_(original_);
