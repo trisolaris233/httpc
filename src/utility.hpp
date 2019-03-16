@@ -56,7 +56,11 @@ namespace httpc {
     std::string GetMethodStr<HttpMethodEnum::POST>() noexcept;
     
     template <HttpMethodEnum... Methods>
-    std::vector<std::string> GetMethodsStr() noexcept;
+    std::vector<std::string> GetMethodsStr() noexcept {
+        std::vector<std::string> res;
+        (res.emplace_back((GetMethodStr<Methods>())), ...);
+        return res;
+    }
 
     bool is_char(int c) noexcept;
     bool is_ctl(int c) noexcept;

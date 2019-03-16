@@ -14,7 +14,7 @@ namespace httpc {
     class Connection 
         : public std::enable_shared_from_this<Connection>, Noncopyable {
     public:
-        static int conn_num;
+        // static int conn_num;
         Connection(
             boost::asio::io_context& io_context,
             /*ConnectionManager& manager,*/ 
@@ -24,15 +24,15 @@ namespace httpc {
             : http_router_(router)
             , socket_(io_context)
             , keep_alive_timer_(io_context)
-            , no(++conn_num)
+            // , no(++conn_num)
         {
-            debug().dg("connection ctor").lf();
+           // debug().dg("connection ctor").lf();
             //std::cout << "no." << this->no << " connection start" << std::endl;
         }
 
-        ~Connection() {
-            debug().dg("connection dector").lf();
-        }
+        // ~Connection() {
+        //     debug().dg("connection dector").lf();
+        // }
 
         void Start(/*std::function<void(std::shared_ptr<Connection>)> complete()*/) {
             // this->socket_.set_option(boost::asio::socket_base::keep_alive(true));
@@ -67,7 +67,7 @@ namespace httpc {
         // std::function<void(std::shared_ptr<Connection>)>
         //                                 complete_callback_;
         boost::asio::steady_timer       keep_alive_timer_;
-        int no;
+        // int no;
         
 
         void ShutDownSocket_() {
@@ -79,22 +79,125 @@ namespace httpc {
         }
 
         void ActiveKeepAliveTimer() {
-            debug().dg("set timer").lf();
+            //debug().dg("set timer").lf();
             // this->keep_alive_ = true;
             this->keep_alive_timer_.expires_after(std::chrono::seconds{60});
             this->keep_alive_timer_.async_wait([this, self = this->shared_from_this()]
             (boost::system::error_code const& ec) {
                 if (ec) {
-                    debug().dg("timer handler: ").dg(ec.message()).lf();
+                    //debug().dg("timer handler: ").dg(ec.message()).lf();
                     return;
                 }
-                debug().dg("timer handler get closed");
+                debug().dg("timer handler get closed").lf();
                 //std::cout << "no." << this->no << " timer close" << std::endl;
                 self->Socket().close();
             });
         }
-        
-         void HandleRead_(
+
+        void HandleReadBody(boost::system::error_code const& ec, std::size_t bytes_transferred) {
+            std::cout << "handle body" << std::endl;
+            
+            // call the user interface first
+            // so that user can determine wheather permit
+            // the file to upload or not
+            this->http_router_.Route(
+                this->request_.method,
+                this->request_.uri.GetUri(), 
+                this->request_, 
+                this->response_
+            );
+
+            // debug().dg(this->request_).lf();
+
+            // judge if user would like to receive the next file
+            if (this->request_.RecvNextFileOrNot()) {
+                this->parser_.ParseBody(
+                    this->request_,
+                    this->buffer_.data(), 
+                    this->buffer_.data() + bytes_transferred
+                );
+                debug().dg("parse post body complete").lf();
+                debug().dg(this->request_).lf();
+                // complete the parsement
+                this->http_router_.Route(
+                    this->request_.method,
+                    this->request_.uri.GetUri(), 
+                    this->request_, 
+                    this->response_
+                );
+            }
+            
+            // this->CheckKeepAlive_();
+
+            // this->request_.uri.Update();
+                // debug().dg(this->request_.uri.GetUri()).lf();
+            
+            //debug().dg(this->response_).lf();
+            this->handler_.Respond(
+                this->request_,
+                this->response_
+            );
+            this->DoWrite();
+        }
+
+        void ReadBody() {
+            this->ActiveKeepAliveTimer();
+            // this->request_.uri.Update();
+            this->socket_.async_read_some(
+                boost::asio::buffer(this->buffer_),
+                [this, self = this->shared_from_this()] 
+                (boost::system::error_code const& ec, std::size_t bytes_transferred) {
+                    debug()
+                        .dg("Read Body ec.message = ")
+                        .dg(ec.message())
+                        .lf()
+                        .dg("bytes_transferred = ")
+                        .dg(bytes_transferred)
+                        .lf();
+                    
+                    if (!ec) {
+                        debug().dg("handle read body").lf();
+                        HandleReadBody(ec, bytes_transferred);
+                    } else {
+                        debug().dg("read eof do write").lf();
+                        // this->CheckKeepAlive_();
+
+                        
+                            // debug().dg(this->request_.uri.GetUri()).lf();
+                        this->http_router_.Route(
+                            this->request_.method,
+                            this->request_.uri.GetUri(), 
+                            this->request_, 
+                            this->response_
+                        );
+                        //debug().dg(this->response_).lf();
+                        this->handler_.Respond(
+                            this->request_,
+                            this->response_
+                        );
+                        this->DoWrite();
+                    }
+                }
+            );
+        }
+
+        void ReadTillEof() {
+            debug().dg("read till eof").lf();
+            this->socket_.async_read_some(
+                boost::asio::buffer(this->buffer_),
+                [this, self = this->shared_from_this()]
+                (boost::system::error_code const& ec, std::size_t bytes_transferred) {
+                    debug().dg("cnm").lf();
+                    if (ec) {
+
+                    } else {
+
+                    }
+                }
+            );
+        }
+
+        void HandleRead_(
             boost::system::error_code const& ec, std::size_t bytes_transferred
         ) {
             auto parse_res = 
@@ -102,28 +205,77 @@ namespace httpc {
                     this->request_, this->buffer_.data(),
                     this->buffer_.data() + bytes_transferred
                 );
-            this->CheckKeepAlive_();
+            // std::cout << this->request_ << std::endl;
+            
             // get the enum value of parse result.
             auto res_enum = std::get<0>(parse_res);
             // debug().dg(this->request_).lf();
             
             // if a request if parsed completely
             if (res_enum == RequestParser::kGood) {
+                this->CheckKeepAlive_();
                 this->request_.uri.Update();
-                // debug().dg(this->request_.uri.GetUri()).lf();
-                this->http_router_.Route(
-                    this->request_.method,
-                    this->request_.uri.GetUri(), 
-                    this->request_, 
-                    this->response_
-                );
-                //debug().dg(this->response_).lf();
-                this->handler_.Respond(
-                    this->request_,
-                    this->response_
-                );
 
-                this->DoWrite();
+                auto itr = this->request_.FindHeader("Content-Length");
+
+                if (itr == this->request_.HeaderCEnd()) {
+                        // debug().dg(this->request_.uri.GetUri()).lf();
+                    this->http_router_.Route(
+                        this->request_.method,
+                        this->request_.uri.GetUri(), 
+                        this->request_, 
+                        this->response_
+                    );
+                    //debug().dg(this->response_).lf();
+                    this->handler_.Respond(
+                        this->request_,
+                        this->response_
+                    );
+                    this->DoWrite();
+                } else {
+                    
+                    // call once the user bussiness
+                    // pass the judgement of whether receive the next file
+                    // to user.
+                    this->http_router_.Route(
+                        this->request_.method,
+                        this->request_.uri.GetUri(), 
+                        this->request_, 
+                        this->response_
+                    );
+                    debug().dg("route complete").lf();
+                    if (this->request_.RecvNextFileOrNot()) {
+                        debug().dg("read body").lf();
+                        this->ReadBody();
+                    } else {
+                        // this->socket_.non_blocking(true);
+                        debug().dg("async read").lf();
+                        this->socket_.async_read_some(
+                            boost::asio::buffer(this->buffer_),
+                            [this, self = this->shared_from_this()]
+                            (boost::system::error_code const& ec, std::size_t bytes_transferred) {
+                                debug().dg("deny async read => ").dg(ec.message())
+                                    .dg(" size => ").dg(bytes_transferred).lf();
+                                if (ec) {
+                                    if (ec == boost::asio::error::eof) {
+                                        // this->handler_.Respond(
+                                        return;
+                                        //     this->request_,
+                                        //     this->response_
+                                        // );
+                                        // this->DoWrite();
+                                    }
+                                }
+                                debug().dg("enter read till eof").lf();
+                                this->ReadTillEof();
+                                
+                            }
+                        );
+                        
+                    }
+                    
+                }
+                // debug().dg("invoke this->readbody()").lf();
                 //this->ResetKeepAliveTimer();
             } else if (res_enum == RequestParser::kIndeterminate) {
                 //this->ResetKeepAliveTimer();
@@ -209,7 +361,7 @@ namespace httpc {
             // }
             // std::cout << response_ << std::endl;
             // this->ResetKeepAliveTimer();
-            debug().dg(this->response_).lf();
+            // debug().dg(this->response_).lf();
             this->ActiveKeepAliveTimer();
             boost::asio::async_write(
                 socket_,
@@ -226,5 +378,5 @@ namespace httpc {
         
     };
 
-    int Connection::conn_num = 0;
+    // int Connection::conn_num = 0;
 }

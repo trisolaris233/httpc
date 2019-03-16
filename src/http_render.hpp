@@ -1,9 +1,9 @@
 #pragma once
 
+#include <map>
+#include <string>
+
 namespace httpc {
-
-    class HttpRender {
-
-    };
+    
 
 }

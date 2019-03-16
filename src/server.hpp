@@ -115,15 +115,18 @@ namespace httpc {
         
 
     private:
+        // using io_context_ptr = std::shared_ptr<boost::asio::io_context> io_context_ptr;
+        // using work_ptr = std::shared_ptr<boost::asio::io_context::work> work_ptr;
+
         boost::asio::io_context             io_context_;
         boost::asio::ip::tcp::acceptor      acceptor_;
         std::string                         document_root_;
         //ConnectionManager                   manager_;
         HttpRouter                          http_router_;
-        std::mutex                          acceptor_mutex_;
-        std::atomic<bool>                   atomic_accept_flag_{false};
+        // std::mutex                          acceptor_mutex_;
+        // std::atomic<bool>                   atomic_accept_flag_{false};
         std::size_t                         num_of_thread_;
-        std::shared_ptr<ThreadPool>         thread_pool_;
+        // std::shared_ptr<ThreadPool>         thread_pool_;
 
         void AssignMultithreadAccept_() {
             // this->thread_pool_ = std::make_shared<ThreadPool>(num_of_thread_);

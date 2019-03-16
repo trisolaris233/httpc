@@ -103,12 +103,7 @@ namespace httpc {
         return std::string("POST");
     }
 
-    template <HttpMethodEnum... Methods>
-    std::vector<std::string> GetMethodsStr() noexcept {
-        std::vector<std::string> res;
-        (res.emplace_back((GetMethodStr<Methods>())), ...);
-        return res;
-    }
+    
 
     bool is_char(int c) noexcept {
         return c >= 0 && c <= 127;

@@ -9,6 +9,7 @@
 #include "request.hpp"
 #include "response.hpp"
 #include "server.hpp"
+#include "debug.hpp"
 #include "utility.hpp"
 //#include "connection_manager.hpp"
 #include <iostream>
@@ -170,13 +171,27 @@ int main(int argc, char* argv[]) {
         std::string(argv[1]), 
         "/home/sakakiyukiho/dev/cpp/httpc/static"
     );
-    server.AddRouter("/root", [](Request&, Response& res) {
-        res.RenderString("hello, world");
+    // constexpr auto GET = httpc::HttpMethodEnum::GET;
+    // constexpr auto POST = httpc::HttpMethodEnum::POST;
+    server.AddRouter<httpc::HttpMethodEnum::GET, httpc::HttpMethodEnum::POST>
+    ("/root", [](Request& req, Response& res) {
+        
+        httpc::debug().dg("file size = ").dg(req.GetFileSize()).lf();
+        if (req.GetFileSize() != 0) {
+            // req.DenyNextFile(); // refuse to recv next file
+            req.RecvNextFile();
+        } else {
+            std::cout << "53?" << std::endl;
+            res.RenderString("hello, world");
+        }
+        if (req.RecvComplete() && req.RecvSuccessfully()) {
+            res.RenderString(req.GetFiles()[0].GetContent());
+        }
     });
     server.AddRouter("/root/*",[](Request&, Response& res) {
         res.RenderString("hello, root");
     });
-    server.AddRouter("/static_file", [&server](Request&, Response& res) {
+    server.AddRouter("/static_file", [&server](Request& req, Response& res) {
         res.RenderFromStaticFile(server.GetDocumentRoot() + "/index.html");
     });
 

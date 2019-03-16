@@ -135,7 +135,7 @@ namespace httpc {
         ) {
             
             if (route_directory.find('.') != std::string::npos) {
-                std::cout << "Render local file" << std::endl;
+                // std::cout << "Render local file" << std::endl;
                 this->InvokeLocalFileRenderer(route_directory, response);
                 // response.RenderFromStaticFile(this->server_->GetDocumentRoot() + route_directory);
                 return;
