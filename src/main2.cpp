@@ -13,6 +13,7 @@
 #include "utility.hpp"
 //#include "connection_manager.hpp"
 #include <iostream>
+// #undef HTTPC_DEBUG
 
 using httpc::Request;
 using httpc::Response;
@@ -176,15 +177,16 @@ int main(int argc, char* argv[]) {
     server.AddRouter<httpc::HttpMethodEnum::GET, httpc::HttpMethodEnum::POST>
     ("/root", [](Request& req, Response& res) {
         
-        httpc::debug().dg("file size = ").dg(req.GetFileSize()).lf();
+        httpc::debug().dg("bussiness filesize received => ").dg(req.GetFileSize()).lf();
         if (req.GetFileSize() != 0) {
             // req.DenyNextFile(); // refuse to recv next file
             req.RecvNextFile();
         } else {
-            std::cout << "53?" << std::endl;
+            // std::cout << "53?" << std::endl;
             res.RenderString("hello, world");
         }
         if (req.RecvComplete() && req.RecvSuccessfully()) {
+            // std::cout << "go render" << std::endl;
             res.RenderString(req.GetFiles()[0].GetContent());
         }
     });

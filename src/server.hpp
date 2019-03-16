@@ -148,14 +148,16 @@ namespace httpc {
                 ptr_conn->Socket(), 
                 [this, ptr_conn] (boost::system::error_code ec) {
                     if(!ec) {
-                        debug().dg("accept: ").dg(ec.message()).lf();
+                        // debug().dg("accept: ").dg(ec.message()).lf();
                         //debug().dg("start").lf();
+                        debug().dg("accept and start a connection").lf();
                         ptr_conn->Socket().set_option(boost::asio::ip::tcp::no_delay(true));
                         ptr_conn->Start();
                     } else {
-                        std::cout << "err: " << ec.message() << std::endl;
+                        // std::cout << "err: " << ec.message() << std::endl;
                     }
                     //this->atomic_accept_flag_ = false;
+                    debug().dg("wait for next connection").lf();
                     this->Accept_();
                 }
             );

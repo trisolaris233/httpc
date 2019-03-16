@@ -3,7 +3,7 @@
 #define HTTPC_DEBUG
 
 #ifdef HTTPC_DEBUG
-// #undef HTTPC_DEBUG
+#undef HTTPC_DEBUG
 #include <tuple>
 #include <iostream>
 #endif

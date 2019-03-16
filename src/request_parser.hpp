@@ -81,18 +81,18 @@ namespace httpc {
             return std::make_tuple(kIndeterminate, begin);
         }
 
-        template <typename CharT>
-        ResultType ParseBody(
-            Request& request, CharT chr
-        ) {
+        // template <typename CharT>
+        // ResultType ParseBody(
+        //     Request& request, CharT chr
+        // ) {
 
-        }
+        // }
 
         template <typename InputIterator>
         ResultType ParseBody(
             Request& request_, InputIterator begin, InputIterator end
         ) {
-            debug().dg(std::string(begin, end)).lf();
+            // debug().dg(std::string(begin, end)).lf();
 
             auto itr = request_.FindHeader("Content-Type");
             if (itr != request_.HeaderCEnd()) {

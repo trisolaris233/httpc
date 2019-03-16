@@ -63,6 +63,9 @@ namespace httpc {
             this->message_body.clear();
             this->files_.clear();
             this->fields_.clear();
+            this->file_recv_flag_ = false;
+            this->file_recv_complete_flag_ = false;
+            this->file_recv_successfully_flag_ = false;
         }
 
         inline std::size_t GetFileSize() const {

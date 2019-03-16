@@ -62,6 +62,32 @@ namespace httpc {
             return this->async_state_flag_;
         }
 
+        inline decltype(auto) HeaderCBegin() const noexcept {
+            return this->headers.cbegin();
+        }
+
+        inline decltype(auto) HeaderCEnd() const noexcept {
+            return this->headers.cend();
+        }
+
+        inline decltype(auto) HeaderBegin() noexcept {
+            return this->headers.begin();
+        }
+
+        inline decltype(auto) HeaderEnd() noexcept {
+            return this->headers.end();
+        }
+
+        template <typename StringT>
+        decltype(auto) FindHeader(StringT&& field) {
+            for (auto itr = this->HeaderCBegin(); itr != this->HeaderCEnd(); ++itr) {
+                if (itr->field == field) {
+                    return itr;
+                }
+            }
+            return this->HeaderCEnd();
+        }
+
         template <typename IntType>
         inline std::enable_if_t<std::is_integral_v<IntType>, bool>
         SetHTTPVersion(IntType version) {
@@ -121,7 +147,7 @@ namespace httpc {
             if (this->http_major_version == 1 &&  this->http_minor_version == 1) {
                 this->AddHeader("Connection", "keep-alive");
             }
-            std::cout << "how" << std::endl;
+            //std::cout << "how" << std::endl;
             this->AddHeader("Server", "httpc");
             // bool connection_flag = false;
             // bool server_flag = false;
@@ -139,7 +165,7 @@ namespace httpc {
             // if (!server_flag)
             //     this->headers.emplace_back(Header{"Server", "httpc"});
 #ifdef HTTPC_ENABLE_GZIP
-            std::cout << "how" << std::endl;
+            //std::cout << "how" << std::endl;
             this->AddHeader("Content-Encoding", "gzip");
 #endif
         }
