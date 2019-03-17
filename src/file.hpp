@@ -11,6 +11,7 @@ namespace httpc {
     class File {
         // friend class Request;
     public:
+        File() noexcept = default;
         File(std::string const& name) noexcept 
             : name_(name) 
         {}

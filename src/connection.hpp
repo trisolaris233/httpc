@@ -106,6 +106,11 @@ namespace httpc {
                 this->buffer_.data(), 
                 this->buffer_.data() + bytes_transferred
             );
+            this->parser_.ParseFormData(
+                this->request_,
+                this->buffer_.data(), 
+                this->buffer_.data() + bytes_transferred
+            );
             debug().dg("parse post body complete").lf();
             // debug().dg(this->request_).lf();
             auto itr = this->response_.FindHeader("Content-Length");

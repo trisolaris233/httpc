@@ -3,6 +3,7 @@
 #include <tuple>
 #include <string>
 #include <iostream>
+#include <boost/algorithm/string.hpp>
 #include "request.hpp"
 
 namespace httpc {
@@ -34,14 +35,12 @@ namespace httpc {
         enum ParseBodyStatusEnum {
             kBodyStart,
             kBodyFirstLine,
-            kBodyFirstCR,
             kBodyFirstLF,
-            kBodyFirstMetadata,
-            kBodyFIrstMetadataCR,
-            kBodyFirstMetadataLF,
-            kBodySecondMetadata,
-            kBodySecondMetadataCR,
-            kBodySecondMetadataLF,
+            kBodyMetaDataStart,
+            kBodyMetaDataLF,
+            // kBodyMetaDataEndCR,
+            kBodyMetaDataEndLF,
+            kBodyContent,
             
         };
 
@@ -70,6 +69,7 @@ namespace httpc {
         template <typename InputIterator>
         std::tuple<ResultType, InputIterator> Parse(Request& request, 
             InputIterator begin, InputIterator end) {
+            std::cout << std::string(begin, end) << std::endl;
             ResultType res = kBad;
             for (; begin != end; ++begin) {
                 if(ParseRequest(request, *begin) == kGood) {
@@ -81,18 +81,214 @@ namespace httpc {
             return std::make_tuple(kIndeterminate, begin);
         }
 
-        // template <typename CharT>
-        // ResultType ParseBody(
-        //     Request& request, CharT chr
-        // ) {
+        template <typename InputIterator>
+        ResultType ParseFormData (
+            Request& request, InputIterator begin, InputIterator end
+        ) {
+            try {
+                this->ptr_form_data_ = std::make_shared<FormDataBodyTmp_>();
+            } catch(const std::bad_alloc& e) {
+                throw e;
+            }
 
+            std::vector<std::string> res;
+            auto itr = request.FindHeader("Content-Type");
+            if (itr == request.HeaderCEnd()) {
+                return kBad;
+            }
+            
+            auto pos = itr->value.find("boundary=");
+            if (pos == std::string::npos) {
+                return kBad;
+            }
+            std::string src(begin, end),
+                        start_boundary(std::string("--") + std::string(
+                            itr->value.begin() + pos + 9,
+                            itr->value.end()
+                        )),
+                        end_boundary(start_boundary + "--");
+            boost::split(res, src, boost::is_any_of("\r\n"));
+            std::cout   << "start_boundary => " << start_boundary << std::endl
+                        << "end_boundary => " << end_boundary << std::endl << std::endl;
+            bool    void_line_flag = false,
+                    boundary_start_flag = false;
+            for (const auto& line : res) {
+                if (line.empty()) {
+                    if (void_line_flag) {
+                        if (boundary_start_flag) {
+                            
+                        }
+                    }
+                }
+                if (line == start_boundary) {
+
+                } else if (line == end_boundary) {
+
+                }
+                for (auto chr : line) {
+                    if (chr == '\n') {
+                        std::cout << "\\n";
+                    } else {
+                        std::cout << chr;
+                    }
+                    
+                }  
+                std::cout << std::endl;    
+                
+            } 
+
+
+            // ResultType res = kBad;
+            // for (; begin != end; ++begin) {
+            //     res = this->ParseFormData_(request, *begin);
+            //     if (res == kBad) {
+            //         return std::make_pair(res, end);
+            //     } else if (res == kGood) {
+            //         break;
+            //     }
+            // }
+
+            // if (!this->ptr_form_data_->filename_.empty()
+            //     || this->ptr_form_data_->filetype_.empty()) {
+            //     request.files_.emplace_back(
+            //         this->ptr_form_data_->filename_
+            //     );
+            //     request.files_.back().SetType(
+            //         this->ptr_form_data_->filetype_
+            //     );
+            //     this->ptr_form_data_->filename_.clear();
+            //     this->ptr_form_data_->filetype_.clear();
+            // }
+        }
+
+        // template <typename InputIterator>
+        // ResultType ParseFormDataContent_(
+        //     Request& request,
+        //     InputIterator begin, InputIterator end
+        // ) {
+        //     std::string left(begin, end);
+        //     std::vector<std::string> res;
+        //     boost::split(res, left, boost::is_any_of("\r\n"), boost::token_compress_on);
+            
+        //     for (const auto& line : res) {
+        //         if (line == this->ptr_form_data_->boundary_ + "--") {
+        //             request.files_.emplace_back(
+        //                 this->ptr_form_data_->filename_
+        //             );
+        //             request.files_.back().SetType(
+        //                 this->ptr_form_data_->filetype_
+        //             );
+        //             reuqest.files_.back().SetContent(
+        //                 this->ptr_form_data_->tmp_
+        //             );
+                    
+        //             this->ptr_form_data_->tmp_.clear();
+        //             this->ptr_form_data_->filename_.clear();
+        //             this->ptr_form_data_->filetype_.clear();
+        //         }
+        //     }
         // }
+
+        // template <typename CharT>
+        // ResultType ParseFormData_(
+        //     Request& request, CharT ch
+        // ) {
+        //     switch (this->parse_form_data_enum_) {
+        //     case kBodyStart:
+        //         this->ptr_form_data_->boundary_.push_back(ch);
+        //         this->parse_form_data_enum_ = kBodyFirstLine;
+        //         return kIndeterminate;
+        //     case kBodyFirstLine:
+        //         if (ch == '\r') {
+        //             this->parse_form_data_enum_ = kBodyFirstLF;
+        //         } else {
+        //             this->ptr_form_data_->boundary_.push_back(ch);
+        //         }
+        //         return kIndeterminate;
+        //     case kBodyFirstLF:
+        //         if (ch != '\n') {
+        //             return kBad;
+        //         }
+        //         this->parse_form_data_enum_ = kBodyMetaDataStart;
+        //         return kIndeterminate;
+        //     case kBodyMetaDataStart:
+        //         if (ch == '\r') {
+        //             if (this->ptr_form_data_->tmp_.empty()) {
+        //                 this->parse_form_data_enum_ = kBodyContent;
+        //             } else {
+        //                 this->parse_form_data_enum_ = kBodyMetaDataLF;
+        //             }
+        //         } else {
+        //             this->ptr_form_data_->tmp_.push_back(ch);
+        //         }
+        //         return kIndeterminate;
+        //     case kBodyMetaDataLF:
+        //         if (ch != '\n') {
+        //             return kBad;
+        //         } else {
+        //             std::string content_dispoistion = "Content-Disposition",
+        //                         content_type = "Content-Type";
+        //             std::string& tmp = this->ptr_form_data_->tmp_;
+        //             if (tmp.substr(0, content_dispoistion.length()) 
+        //                     == content_dispoistion) {
+        //                 std::string filename_token = "filename=\"";
+        //                 auto pos = tmp.find(filename_token);
+        //                 if (pos == std::string::npos) {
+        //                     return kBad;
+        //                 }
+        //                 auto pos2 = tmp.find_first_of(pos + filename_token.length() + 1, '\"');
+        //                 if (pos2 == std::string::npos) {
+        //                     return kBad;
+        //                 }
+        //                 this->ptr_form_data_->filename_.assign(
+        //                     tmp.begin() + pos + filename_token.length() + 1, 
+        //                     pos2
+        //                 );
+        //             }
+        //             else if (tmp.substr(0, content_type.length()) == content_type) {
+        //                 auto pos = tmp.find_first_of(':');
+        //                 if (pos == std::string::npos) {
+        //                     return kBad;
+        //                 }
+        //                 auto pos2 = tmp.find_first_of(pos + 2, '\r');
+        //                 if (pos2 == std::string::npos) {
+        //                     return kBad;
+        //                 }
+        //                 this->ptr_form_data_->filetype_.assign(
+        //                     tmp.begin() + pos + 2, tmp.begin() + pos2
+        //                 );
+        //             }
+        //             tmp.clear();
+        //             this->parse_form_data_enum_ = kBodyMetaDataStart;
+        //             return kIndeterminate;
+        //         }
+        //     case kBodyContent:
+        //         return (ch == '\n') ? kGood : kBad;
+        //     default:
+        //         return kBad;
+        //     }
+        // }
+
 
         template <typename InputIterator>
         ResultType ParseBody(
             Request& request_, InputIterator begin, InputIterator end
         ) {
             // debug().dg(std::string(begin, end)).lf();
+            bool flag = false;
+            for (auto itr = begin; itr != end; ++itr) {
+                if (*itr != '\r' && *itr != '\n') {
+                    std::cout << *itr;
+                } else if (*itr == '\r') {
+                    std::cout << "\\r";
+                    flag = true;
+                } else {
+                    if (flag) {
+                        flag = false;
+                    }
+                    std::cout << "\\n" << std::endl;
+                }
+            }
 
             auto itr = request_.FindHeader("Content-Type");
             if (itr != request_.HeaderCEnd()) {
@@ -204,9 +400,20 @@ namespace httpc {
         
 
     private:
-        std::string      request_str_;
-        ParseStatusEnum  parse_enum_;
-        int              power_{1};
+        struct FormDataBodyTmp_ {
+            std::string boundary_;
+            std::string filetype_;
+            std::string filename_;
+            std::string tmp_;
+            // bool        flag_;
+        };
+        std::string         request_str_;
+        ParseStatusEnum     parse_enum_;
+        ParseBodyStatusEnum parse_form_data_enum_;
+        int                 power_{1};
+        std::shared_ptr<FormDataBodyTmp_>
+                            ptr_form_data_;
+        
 
         
 

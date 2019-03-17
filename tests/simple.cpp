@@ -31,7 +31,7 @@ int main() {
     });
     
     main_server.Start();
-    for(;;){}
+    for(;;) {}
 
     return 0;
 }
